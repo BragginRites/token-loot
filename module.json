@@ -1,0 +1,31 @@
+{
+  "id": "token-loot",
+  "title": "Token Loot",
+  "description": "Grant random loot to tokens on creation based on configurable actor groups.",
+  "version": "0.0.1",
+  "authors": [
+    { "name": "Token Loot" }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "esmodules": [
+    "scripts/main.js",
+    "scripts/utils/settings.js",
+    "scripts/ui/groupManager.js"
+  ],
+  "styles": [
+    "styles/token-loot.css"
+  ],
+  "packs": [],
+  "languages": [
+    { "lang": "en", "name": "English", "path": "lang/en.json" }
+  ],
+  "url": "https://example.com",
+  "manifest": "https://example.com/module.json",
+  "download": "https://example.com/module.zip",
+  "license": "MIT",
+  "readme": "README.md"
+}
+

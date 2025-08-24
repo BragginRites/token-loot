@@ -1,0 +1,10 @@
+.token-loot-log {
+	font-size: 12px;
+}
+.token-loot-log strong {
+	font-weight: 700;
+}
+.token-loot-log em {
+	font-style: italic;
+}
+
