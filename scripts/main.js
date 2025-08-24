@@ -113,36 +113,74 @@ Hooks.on('createToken', async (tokenDocument, options, userId) => {
 		const actor = tokenDocument?.actor;
 		if (!actor) return;
 
+		console.log(`${MODULE_ID} | Processing token creation for actor: ${actor.name}`);
+
 		const rules = getEffectiveRulesForActor(actor);
-		if (!rules) return;
+		if (!rules) {
+			console.log(`${MODULE_ID} | No rules found for actor`);
+			return;
+		}
 
 		// Find exactly one group containing this actor
 		const group = findGroupContainingActor(rules, actor);
-		if (!group) return;
+		if (!group) {
+			console.log(`${MODULE_ID} | No group found containing actor: ${actor.name}`);
+			return;
+		}
+
+		console.log(`${MODULE_ID} | Found group: ${group.name} for actor: ${actor.name}`);
+		console.log(`${MODULE_ID} | Group has ${(group.distributionBlocks || []).length} distribution blocks`);
 
 		const grantLog = { currency: {}, items: [] };
 
-		// 1) Determine N
-		const numToGrant = randomIntegerInclusive(group.minItems ?? 0, group.maxItems ?? 0);
-
-		// 2) Currency
+		// 1) Currency
 		if (group.currency) {
 			await applyCurrency(actor, group.currency, grantLog);
 		}
 
-		// 3) Independent chance per item
-		const successes = rollIndependentChances(group.loot);
-		let chosen = successes;
-		if (!group.allowDuplicates) {
-			chosen = trimOrFillWithoutReplacement(successes, group.loot, numToGrant);
-		} else {
-			chosen = trimOrFillWithReplacement(successes, group.loot, numToGrant);
+		// 2) Process each distribution block
+		for (const block of group.distributionBlocks || []) {
+			console.log(`${MODULE_ID} | Processing block: ${block.name} (type: ${block.type})`);
+			console.log(`${MODULE_ID} | Block has ${(block.items || []).length} items`);
+			
+			if (!block.items || block.items.length === 0) {
+				console.log(`${MODULE_ID} | Skipping empty block: ${block.name}`);
+				continue;
+			}
+			
+			let chosenItems = [];
+			
+			if (block.type === 'all') {
+				// Grant all items in the block
+				chosenItems = [...(block.items || [])];
+				console.log(`${MODULE_ID} | All items mode: selected ${chosenItems.length} items`);
+			} else if (block.type === 'pick') {
+				// Pick N items from the block
+				const count = block.count || 1;
+				const availableItems = block.items.filter(item => item.uuid);
+				console.log(`${MODULE_ID} | Pick mode: selecting ${count} from ${availableItems.length} available items`);
+				if (block.allowDuplicates) {
+					// Pick with replacement
+					for (let i = 0; i < count && availableItems.length > 0; i++) {
+						chosenItems.push(availableItems[Math.floor(Math.random() * availableItems.length)]);
+					}
+				} else {
+					// Pick without replacement
+					chosenItems = randomSample(availableItems, Math.min(count, availableItems.length));
+				}
+				console.log(`${MODULE_ID} | Pick mode: chose ${chosenItems.length} items`);
+			} else if (block.type === 'chance') {
+				// Roll individual chances for each item
+				chosenItems = rollIndependentChances(block.items);
+				console.log(`${MODULE_ID} | Chance mode: ${chosenItems.length} items passed their chance rolls`);
+			}
+			
+			console.log(`${MODULE_ID} | Granting ${chosenItems.length} items from block: ${block.name}`);
+			// Grant the chosen items
+			await grantItems(actor, chosenItems, grantLog);
 		}
 
-		// 6) Apply quantities & create
-		await grantItems(actor, chosen, grantLog);
-
-		// 7) Chat log
+		// 3) Chat log
 		await postGMChatLog(actor, group, grantLog);
 	} catch (err) {
 		console.error(`${MODULE_ID} | Error applying loot on token creation`, err);
@@ -161,7 +199,7 @@ function getEffectiveRulesForActor(actor) {
 function findGroupContainingActor(rules, actor) {
 	const candidateUuids = new Set([actor.uuid]);
 	try {
-		const sourceId = actor.getFlag('core', 'sourceId');
+		const sourceId = actor._stats?.compendiumSource || actor.getFlag('core', 'sourceId');
 		if (sourceId) candidateUuids.add(sourceId);
 	} catch {}
 	for (const groupId of Object.keys(rules.groups ?? {})) {
@@ -246,12 +284,21 @@ async function applyCurrency(actor, currency, grantLog) {
 /** @param {Actor} actor @param {LootRow[]} rows @param {any} grantLog */
 async function grantItems(actor, rows, grantLog) {
 	const toCreate = [];
+	console.log(`${MODULE_ID} | grantItems called with ${rows.length} rows`);
 	for (const row of rows ?? []) {
-		if (!row?.enabled || !row.uuid) continue;
+		if (!row?.uuid) {
+			console.log(`${MODULE_ID} | Skipping row without UUID:`, row);
+			continue;
+		}
 		const qty = randomIntegerInclusive(row.qtyMin ?? 1, row.qtyMax ?? 1);
+		console.log(`${MODULE_ID} | Processing item ${row.uuid}, qty: ${qty}`);
 		try {
 			const doc = await fromUuid(row.uuid);
-			if (!doc) continue;
+			if (!doc) {
+				console.warn(`${MODULE_ID} | Could not resolve UUID: ${row.uuid}`);
+				continue;
+			}
+			console.log(`${MODULE_ID} | Resolved item: ${doc.name}`);
 			const data = doc.toObject();
 			// Ensure a new embedded Item is created, not an attempt to reuse compendium/world _id
 			if (data._id) delete data._id;
@@ -261,26 +308,59 @@ async function grantItems(actor, rows, grantLog) {
 			data.flags[MODULE_ID] = { granted: true, groupId: row.groupId ?? null };
 			toCreate.push(data);
 			grantLog.items.push({ name: data.name, qty });
+			console.log(`${MODULE_ID} | Added ${data.name} x${qty} to creation queue`);
 		} catch (e) {
 			console.warn(`${MODULE_ID} | Failed to resolve ${row.uuid}`, e);
 		}
 	}
-	if (toCreate.length) await actor.createEmbeddedDocuments('Item', toCreate);
+	console.log(`${MODULE_ID} | Creating ${toCreate.length} items on actor ${actor.name}`);
+	if (toCreate.length) {
+		await actor.createEmbeddedDocuments('Item', toCreate);
+		console.log(`${MODULE_ID} | Successfully created ${toCreate.length} items`);
+	}
 }
 
 /** @param {Actor} actor @param {ActorGroup} group @param {any} grantLog */
 async function postGMChatLog(actor, group, grantLog) {
 	const lines = [];
-	lines.push(`<strong>${actor.name}</strong> received loot from group <em>${group.name}</em>.`);
+	lines.push(`<strong>${actor.name}</strong> received loot from group <em>${group.name}</em>:`);
+	
+	let hasLoot = false;
+	
 	if (Object.keys(grantLog.currency).length) {
-		const cur = Object.entries(grantLog.currency).map(([k,v]) => `${v} ${k}`).join(', ');
-		lines.push(`Currency: ${cur}`);
+		const cur = Object.entries(grantLog.currency)
+			.filter(([k,v]) => v > 0)
+			.map(([k,v]) => `${v} ${k.toUpperCase()}`)
+			.join(', ');
+		if (cur) {
+			lines.push(`💰 Currency: ${cur}`);
+			hasLoot = true;
+		}
 	}
+	
 	if (grantLog.items.length) {
-		for (const it of grantLog.items) lines.push(`${it.qty}x ${it.name}`);
+		lines.push(`📦 Items:`);
+		for (const it of grantLog.items) {
+			lines.push(`&nbsp;&nbsp;• ${it.qty}x ${it.name}`);
+		}
+		hasLoot = true;
 	}
+	
+	if (!hasLoot) {
+		lines.push(`<em>No items or currency granted.</em>`);
+	}
+	
+	console.log(`${MODULE_ID} | Chat log:`, lines.join(' '));
+	
 	const content = `<div class="token-loot-log">${lines.map(l => `<div>${l}</div>`).join('')}</div>`;
-	await ChatMessage.create({ content, whisper: ChatMessage.getWhisperRecipients('GM').map(u => u.id) });
+	try {
+		await ChatMessage.create({ content, whisper: ChatMessage.getWhisperRecipients('GM').map(u => u.id) });
+		console.log(`${MODULE_ID} | Chat message created successfully`);
+	} catch (e) {
+		console.warn(`${MODULE_ID} | Failed to create chat message (probably module conflict):`, e);
+		// Fallback: just log to console
+		console.log(`${MODULE_ID} | Loot Summary: ${lines.join(' ')}`);
+	}
 }
 
 
