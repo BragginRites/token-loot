@@ -160,6 +160,17 @@ export function openGroupManager() {
 					autosave();
 				});
 			});
+
+			// Make distribution block collapsible by clicking the header (but not when interacting with inputs/buttons)
+			const header = blockEl.querySelector('.tl-distribution-header');
+			const config = blockEl.querySelector('.tl-distribution-config');
+			const itemsList = blockEl.querySelector('.tl-items-list');
+			header?.addEventListener('click', ev => {
+				if (ev.target.closest('input,button,.tl-distribution-buttons,.tl-remove-block')) return;
+				const collapsed = blockEl.classList.toggle('tl-collapsed');
+				if (config) config.style.display = collapsed ? 'none' : '';
+				if (itemsList) itemsList.style.display = collapsed ? 'none' : '';
+			});
 			
 			// Block settings
 			blockEl.querySelector('.tl-distribution-count')?.addEventListener('change', ev => {
@@ -203,14 +214,18 @@ export function openGroupManager() {
 		const actorsDrop = el.querySelector('.tl-actors');
 		const itemsDrop = el.querySelector('.tl-items');
 		enableDroppable(actorsDrop, async data => {
-			if (data.type !== 'Actor' || !data.uuid) return;
-			// Enforce unique membership
-			const all = allActorUuids(state.rules);
-			if (all.has(data.uuid)) return ui.notifications?.warn('Actor is already in another group.');
-			group.actorUUIDs = group.actorUUIDs || [];
-			group.actorUUIDs.push(data.uuid);
-			renderGroups();
-			autosave();
+			if (data.type === 'Actor' && data.uuid) {
+				// Handle single actor drop
+				const all = allActorUuids(state.rules);
+				if (all.has(data.uuid)) return ui.notifications?.warn('Actor is already in another group.');
+				group.actorUUIDs = group.actorUUIDs || [];
+				group.actorUUIDs.push(data.uuid);
+				renderGroups();
+				autosave();
+			} else if (data.type === 'Folder' && data.uuid) {
+				// Handle folder drop
+				await handleActorFolderDrop(data, group);
+			}
 		});
 		// Enable dropping items and folders on distribution blocks
 		el.querySelectorAll('.tl-distribution-block .tl-items-list').forEach(itemsDrop => {
@@ -304,7 +319,11 @@ export function openGroupManager() {
 			fromUuid(uuid).then(doc => {
 				if (doc?.name) chip.querySelector('.tl-chip-name')?.replaceChildren(document.createTextNode(doc.name));
 				const img = chip.querySelector('.tl-chip-img');
-				if (img && doc?.img) img.src = doc.img;
+				if (img && doc) {
+					// Use token image if available, fallback to portrait
+					const tokenImg = doc.prototypeToken?.texture?.src;
+					img.src = tokenImg || doc.img || '';
+				}
 			}).catch(() => {});
 		}
 		const itemRows = root.querySelectorAll('.tl-item[data-uuid]');
@@ -315,16 +334,35 @@ export function openGroupManager() {
 			fromUuid(uuid).then(doc => {
 				if (doc?.name && nameEl) nameEl.textContent = doc.name;
 				if (iconEl && doc?.img) iconEl.src = doc.img;
+				// Store a sortable name and resort this list on every resolution
+				if (doc?.name) row.dataset.sortName = String(doc.name).toLowerCase();
+				const listEl = row.closest('.tl-items-list');
+				if (listEl) sortItemsContainer(listEl);
 			}).catch(() => {});
 		}
 	}
 
+	function sortItemsContainer(listEl) {
+		try {
+			const rows = Array.from(listEl.querySelectorAll(':scope > .tl-item'));
+			rows.sort((a, b) => {
+				const an = a.dataset.sortName || a.querySelector('.tl-item-name')?.textContent?.toLowerCase() || '';
+				const bn = b.dataset.sortName || b.querySelector('.tl-item-name')?.textContent?.toLowerCase() || '';
+				return an.localeCompare(bn, undefined, { sensitivity: 'base' });
+			});
+			for (const r of rows) listEl.appendChild(r);
+		} catch {}
+	}
+
 	async function handleFolderDrop(data, block) {
 		try {
+			console.log(`${MODULE_ID} | handleFolderDrop - data:`, data);
 			const folder = await fromUuid(data.uuid);
+			console.log(`${MODULE_ID} | handleFolderDrop - resolved folder:`, folder);
 			if (!folder) return;
 			
 			const items = await collectItemsFromFolder(folder);
+			console.log(`${MODULE_ID} | handleFolderDrop - collected items:`, items);
 			if (items.length === 0) {
 				ui.notifications?.warn(`No items found in folder "${folder.name}"`);
 				return;
@@ -353,33 +391,149 @@ export function openGroupManager() {
 	}
 
 	async function collectItemsFromFolder(folder) {
+		console.log(`${MODULE_ID} | collectItemsFromFolder - folder:`, folder);
+		console.log(`${MODULE_ID} | collectItemsFromFolder - folder.pack:`, folder.pack);
+		console.log(`${MODULE_ID} | collectItemsFromFolder - folder.contents:`, folder.contents);
+		
 		const items = [];
 		
-		// Handle compendium folders
+		// New robust approach for v13: walk folder ancestry on each item
+		const targetFolderId = folder.id;
+		// Compendium pack branch
 		if (folder.pack) {
+			console.log(`${MODULE_ID} | collectItemsFromFolder - processing compendium folder`);
 			const pack = game.packs.get(folder.pack);
+			console.log(`${MODULE_ID} | collectItemsFromFolder - pack:`, pack);
 			if (pack && pack.documentName === 'Item') {
+				console.log(`${MODULE_ID} | collectItemsFromFolder - getting documents from pack`);
 				const documents = await pack.getDocuments();
+				console.log(`${MODULE_ID} | collectItemsFromFolder - pack documents:`, documents.length);
 				for (const doc of documents) {
-					if (doc.folder?.id === folder.id || (!doc.folder && folder.name === pack.metadata.label)) {
+					const inScope = isFolderOrAncestor(doc.folder, targetFolderId);
+					if (inScope) {
+						console.log(`${MODULE_ID} | collectItemsFromFolder - adding item from compendium:`, doc.name, doc.uuid);
 						items.push(doc.uuid);
 					}
 				}
 			}
 		}
-		// Handle world folders
-		else if (folder.contents) {
-			for (const item of folder.contents) {
-				if (item.documentName === 'Item') {
+		// World branch
+		else {
+			console.log(`${MODULE_ID} | collectItemsFromFolder - processing world folder`);
+			// Prefer scanning game.items to include nested folders via ancestry walk
+			for (const item of game.items) {
+				const inScope = isFolderOrAncestor(item.folder, targetFolderId);
+				if (inScope) {
+					console.log(`${MODULE_ID} | collectItemsFromFolder - adding world item:`, item.name, item.uuid);
 					items.push(item.uuid);
 				}
 			}
 		}
-		// Alternative approach for world folders using game.items
-		else {
-			for (const item of game.items) {
-				if (item.folder?.id === folder.id) {
-					items.push(item.uuid);
+		
+		// Using ancestry walk; no explicit recursion required here
+		
+		console.log(`${MODULE_ID} | collectItemsFromFolder - final items:`, items);
+		return items;
+	}
+
+	function isFolderOrAncestor(folderDoc, targetId) {
+		let current = folderDoc;
+		while (current) {
+			if (current.id === targetId) return true;
+			current = current.folder; // ascend to parent
+		}
+		return false;
+	}
+
+	async function getAllDescendantFolderIds(folder) {
+		console.log(`${MODULE_ID} | getAllDescendantFolderIds - processing folder:`, folder.name, folder.id);
+		const folderIds = [folder.id];
+		
+		if (folder.children && folder.children.length > 0) {
+			console.log(`${MODULE_ID} | getAllDescendantFolderIds - found ${folder.children.length} children`);
+			for (const childRef of folder.children) {
+				console.log(`${MODULE_ID} | getAllDescendantFolderIds - child reference:`, childRef);
+				
+				// Try to resolve the child folder - it might be a reference or have different properties
+				let childFolder = null;
+				if (childRef.id) {
+					childFolder = childRef; // Already resolved
+				} else if (childRef.uuid) {
+					childFolder = await fromUuid(childRef.uuid);
+				} else if (typeof childRef === 'string') {
+					// Might be a UUID string
+					childFolder = await fromUuid(childRef);
+				}
+				
+				console.log(`${MODULE_ID} | getAllDescendantFolderIds - resolved child folder:`, childFolder?.name, childFolder?.id);
+				
+				if (childFolder && childFolder.id) {
+					const childIds = await getAllDescendantFolderIds(childFolder);
+					folderIds.push(...childIds);
+				}
+			}
+		}
+		
+		console.log(`${MODULE_ID} | getAllDescendantFolderIds - final folder IDs for ${folder.name}:`, folderIds);
+		return folderIds.filter(id => id !== undefined); // Filter out undefined values
+	}
+
+	async function handleActorFolderDrop(data, group) {
+		try {
+			const folder = await fromUuid(data.uuid);
+			if (!folder) return;
+			
+			const actors = await collectActorsFromFolder(folder);
+			if (actors.length === 0) {
+				ui.notifications?.warn(`No actors found in folder "${folder.name}"`);
+				return;
+			}
+
+			// Check for conflicts with existing group memberships
+			const all = allActorUuids(state.rules);
+			const conflicts = actors.filter(actorUuid => all.has(actorUuid));
+			
+			if (conflicts.length > 0) {
+				ui.notifications?.warn(`${conflicts.length} actor(s) from "${folder.name}" are already in other groups and will be skipped.`);
+			}
+
+			const newActors = actors.filter(actorUuid => !all.has(actorUuid));
+			if (newActors.length === 0) {
+				ui.notifications?.warn(`All actors from "${folder.name}" are already in other groups.`);
+				return;
+			}
+
+			group.actorUUIDs = group.actorUUIDs || [];
+			group.actorUUIDs.push(...newActors);
+
+			renderGroups();
+			autosave();
+			ui.notifications?.info(`Added ${newActors.length} actors from "${folder.name}" to group "${group.name}"`);
+		} catch (error) {
+			console.error(`${MODULE_ID} | Error handling actor folder drop:`, error);
+			ui.notifications?.error(`Failed to add actors from folder: ${error.message}`);
+		}
+	}
+
+	async function collectActorsFromFolder(folder) {
+		const actors = [];
+		
+		// Handle compendium folders
+		if (folder.pack) {
+			const pack = game.packs.get(folder.pack);
+			if (pack) {
+				const documents = await pack.getDocuments();
+				for (const doc of documents) {
+					if (doc.folder?.id === folder.id) {
+						actors.push(doc.uuid);
+					}
+				}
+			}
+		} else {
+			// Handle world folders
+			if (folder.contents) {
+				for (const actor of folder.contents) {
+					actors.push(actor.uuid);
 				}
 			}
 		}
@@ -387,12 +541,12 @@ export function openGroupManager() {
 		// Recursively collect from subfolders
 		if (folder.children) {
 			for (const childFolder of folder.children) {
-				const childItems = await collectItemsFromFolder(childFolder);
-				items.push(...childItems);
+				const childActors = await collectActorsFromFolder(childFolder);
+				actors.push(...childActors);
 			}
 		}
 		
-		return items;
+		return actors;
 	}
 
 	function showBatchSettingsDialog(folderName, itemCount) {
@@ -486,7 +640,11 @@ function template() {
 #${OVERLAY_ID} .tl-num{width:64px;min-width:64px;max-width:64px;padding:6px 8px;border:1px solid #2a2f3a;border-radius:8px;background:#121723;color:#d6dbea;text-align:right}
 #${OVERLAY_ID} .tl-spacer{flex:1}
 #${OVERLAY_ID} .tl-drop{padding:10px;border:1px dashed #2a2f3a;border-radius:8px;min-height:56px;display:flex;flex-wrap:wrap;gap:6px}
-#${OVERLAY_ID} .tl-items-list{display:block}
+#${OVERLAY_ID} .tl-items-list{display:block;max-height:500px;overflow-y:auto}
+#${OVERLAY_ID} .tl-items-list::-webkit-scrollbar{width:8px}
+#${OVERLAY_ID} .tl-items-list::-webkit-scrollbar-track{background:#0a0e14;border-radius:4px}
+#${OVERLAY_ID} .tl-items-list::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
+#${OVERLAY_ID} .tl-items-list::-webkit-scrollbar-thumb:hover{background:#3a3f4a}
 #${OVERLAY_ID} .tl-drop.drag{outline:2px solid #4b81ff}
 #${OVERLAY_ID} .tl-chip{background:#141a27;border:1px solid #2a2f3a;padding:4px 8px;border-radius:999px}
 #${OVERLAY_ID} .tl-chip{display:flex;align-items:center;gap:6px;position:relative}
