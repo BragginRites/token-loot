@@ -1,0 +1,32 @@
+<div class="tl-card" data-gid="{{group.id}}">
+	<div class="tl-card-hdr">
+		<input class="tl-title" data-gid="{{group.id}}" value="{{group.name}}" placeholder="Group Title" />
+		<div class="tl-card-actions">
+			<button class="tl-btn tl-danger tl-delete" title="Delete Group"><i class="fas fa-trash"></i></button>
+		</div>
+	</div>
+	<div class="tl-card-body">
+		<div class="tl-sep">Actors</div>
+		<div class="tl-drop tl-actors" data-gid="{{group.id}}">
+			<!-- actor chips injected here -->
+		</div>
+		<div class="tl-sep">Currency</div>
+		<div class="tl-currency">
+			<div class="tl-currency-row">
+				<label>PP</label><input class="tl-currency-input tl-pp" type="text" placeholder="0 or 1d4 or 10-50" value="{{group.currency.pp}}" />
+				<label>GP</label><input class="tl-currency-input tl-gp" type="text" placeholder="0 or 2d6*10 or 100-500" value="{{group.currency.gp}}" />
+				<label>EP</label><input class="tl-currency-input tl-ep" type="text" placeholder="0 or 1d6 or 5-25" value="{{group.currency.ep}}" />
+			</div>
+			<div class="tl-currency-row">
+				<label>SP</label><input class="tl-currency-input tl-sp" type="text" placeholder="0 or 3d4 or 20-100" value="{{group.currency.sp}}" />
+				<label>CP</label><input class="tl-currency-input tl-cp" type="text" placeholder="0 or 5d10 or 50-200" value="{{group.currency.cp}}" />
+				<span class="tl-currency-spacer"></span>
+			</div>
+		</div>
+		<div class="tl-sep">Distribution Blocks</div>
+		<div class="tl-distribution-blocks" data-gid="{{group.id}}">
+			<!-- blocks injected here -->
+		</div>
+	</div>
+</div>
+

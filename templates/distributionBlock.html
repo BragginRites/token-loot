@@ -1,0 +1,29 @@
+<div class="tl-distribution-block" data-block-id="{{block.id}}">
+	<div class="tl-block-hdr">
+		<input class="tl-block-name" value="{{block.name}}" placeholder="Block Name" />
+		<div class="tl-distribution-buttons">
+			<button class="tl-btn tl-distribution-btn {{block.allActive}}" data-type="all">All</button>
+			<button class="tl-btn tl-distribution-btn {{block.pickActive}}" data-type="pick">Pick N</button>
+			<button class="tl-btn tl-distribution-btn {{block.chanceActive}}" data-type="chance">Chances</button>
+		</div>
+		<label class="tl-allow-dup"><input type="checkbox" class="tl-allow-dup-input" {{block.allowDuplicatesChecked}} /> Allow duplicates</label>
+		<button class="tl-btn tl-danger tl-block-delete" title="Remove Block"><i class="fas fa-trash"></i></button>
+	</div>
+	<div class="tl-distribution-config">
+		<div class="tl-config-pick" {{block.pickDisplay}}>
+			<label>Pick</label>
+			<input class="tl-num tl-distribution-count" type="number" min="1" value="{{block.count}}" />
+
+		</div>
+		<div class="tl-config-chance" {{block.chanceDisplay}}>
+			<label>Min</label>
+			<input class="tl-num tl-ch-min" type="number" min="0" value="{{block.chanceMin}}" />
+			<label>Max</label>
+			<input class="tl-num tl-ch-max" type="number" min="0" value="{{block.chanceMax}}" />
+		</div>
+	</div>
+	<div class="tl-drop tl-items tl-items-list" data-block-id="{{block.id}}">
+		<!-- item rows injected here -->
+	</div>
+</div>
+

@@ -1,0 +1,9 @@
+<div class="tl-item-row" data-uuid="{{item.uuid}}">
+	<img class="tl-item-img" src="{{item.img}}" alt="" />
+	<span class="tl-item-name">{{item.name}}</span>
+	<input class="tl-item-chance" type="number" min="0" max="100" value="{{item.chance}}" {{item.chanceDisplay}} />
+	<input class="tl-item-qtymin" type="number" min="0" value="{{item.qtyMin}}" />
+	<input class="tl-item-qtymax" type="number" min="0" value="{{item.qtyMax}}" />
+	<button class="tl-item-delete tl-icon tl-danger" title="Remove Item"><i class="fas fa-trash"></i></button>
+</div>
+

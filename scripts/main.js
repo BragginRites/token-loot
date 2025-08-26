@@ -1,7 +1,12 @@
 'use strict';
 
 import { MODULE_ID, defaultSettings } from './utils/settings.js';
-import { openGroupManager } from './ui/groupManager.js';
+import { openGroupManager } from './ui/groupManager/index.js';
+import { enqueueActorTask, withRetries } from './domain/queue.js';
+import { setupCreateTokenHook } from './hooks/createToken.js';
+import { setupPreCreateTokenHook } from './hooks/preCreateToken.js';
+import { setupRenderActorDirectoryHook } from './hooks/renderActorDirectory.js';
+import { runMigrations } from './utils/settings.js';
 
 /**
  * @typedef {Object} CurrencyRow
@@ -60,8 +65,9 @@ Hooks.once('init', () => {
 		restricted: true,
 		type: class TLGroupManagerMenu extends FormApplication {
 			render(force, options) {
-				super.render(force, options);
-				try { openGroupManager(); } finally { this.close({ force: true }); }
+				try { openGroupManager(); } catch (e) { console.warn(`${MODULE_ID} | Failed to open manager`, e); }
+				try { this.close({ force: true }); } catch {}
+				return this;
 			}
 		}
 	});
@@ -76,23 +82,7 @@ Hooks.once('init', () => {
 	});
 
 	// Reliability and timing controls
-	game.settings.register(MODULE_ID, 'usePreCreateForUnlinked', {
-		scope: 'world',
-		config: true,
-		name: 'Apply Loot in preCreate for Unlinked Tokens',
-		hint: 'When enabled, unlinked tokens receive loot in preCreate, avoiding race conditions.',
-		type: Boolean,
-		default: false
-	});
-
-	game.settings.register(MODULE_ID, 'awardStaggerMs', {
-		scope: 'world',
-		config: true,
-		name: 'Loot Award Stagger (ms)',
-		hint: 'Optional delay before awarding loot per token to reduce contention. 0 to disable.',
-		type: Number,
-		default: 0
-	});
+	registerReliabilitySettings();
 
 	// Client UI preferences
 	game.settings.register(MODULE_ID, 'groupManagerSize', {
@@ -103,319 +93,16 @@ Hooks.once('init', () => {
 	});
 });
 
-Hooks.once('ready', () => {
+Hooks.once('ready', async () => {
 	console.log(`${MODULE_ID} | Ready`);
+	await runMigrations();
+	setupCreateTokenHook();
+	setupPreCreateTokenHook();
+	setupRenderActorDirectoryHook();
 });
 
-// Add an "Open Loot Groups" button to the Actor Directory footer
-Hooks.on('renderActorDirectory', (app, html) => {
-	try {
-		const root = (html?.[0]) || html || (app?.element?.[0]) || app?.element || null;
-		const container = (root && root.querySelector) ? (root.querySelector('.directory-footer') || root.querySelector('footer')) : document.querySelector('#actors .directory-footer');
-		if (!container) return;
-		if (container.querySelector?.('.tl-open-manager')) return;
-		const btn = document.createElement('button');
-		btn.type = 'button';
-		btn.className = 'tl-open-manager';
-		btn.innerHTML = '<i class="fas fa-list"></i> Loot Groups';
-		btn.addEventListener('click', () => openGroupManager());
-		container.appendChild(btn);
-	} catch (e) {
-		console.warn(`${MODULE_ID} | Failed to inject Actor Directory button`, e);
-	}
-});
+// Per-actor queue and retry helpers moved to scripts/domain/queue.js
 
-// Per-actor queue and retry helpers (to avoid concurrency issues)
-const __actorQueues = new Map();
-function enqueueActorTask(actorId, taskFn) {
-	const prev = __actorQueues.get(actorId) || Promise.resolve();
-	const next = prev.then(() => taskFn()).catch(e => { console.error(`${MODULE_ID} | Actor queue task failed`, e); }).finally(() => {
-		if (__actorQueues.get(actorId) === next) __actorQueues.delete(actorId);
-	});
-	__actorQueues.set(actorId, next);
-	return next;
-}
-
-async function withRetries(fn, attempts = 3, baseDelayMs = 50) {
-	let n = 0;
-	for (;;) {
-		try { return await fn(); }
-		catch (e) {
-			n++;
-			if (n >= attempts) throw e;
-			await new Promise(r => setTimeout(r, baseDelayMs * n));
-		}
-	}
-}
-
-// Apply loot after the token is created so we can modify the token's actor (especially for unlinked tokens)
-Hooks.on('createToken', async (tokenDocument, options, userId) => {
-	try {
-		if (!game.user.isGM) return; // Only GM applies loot
-		const actor = tokenDocument?.actor;
-		if (!actor) return;
-
-		console.log(`${MODULE_ID} | Processing token creation for actor: ${actor.name}`);
-
-		// If loot was applied earlier in preCreate (for unlinked), only post the chat here
-		try {
-			const preApplied = tokenDocument.getFlag(MODULE_ID, 'preApplied');
-			if (preApplied) {
-				const rules = getEffectiveRulesForActor(actor);
-				const group = rules ? findGroupContainingActor(rules, actor) : null;
-				const grantLog = tokenDocument.getFlag(MODULE_ID, 'grantLog') || { currency: {}, items: [] };
-				if (group) await postGMChatLog(actor, group, grantLog);
-				return;
-			}
-		} catch {}
-
-		const staggerMs = Number(game.settings.get(MODULE_ID, 'awardStaggerMs') || 0);
-
-		await enqueueActorTask(actor.id, async () => {
-			if (staggerMs > 0) await new Promise(r => setTimeout(r, staggerMs));
-
-			const rules = getEffectiveRulesForActor(actor);
-			if (!rules) {
-				console.log(`${MODULE_ID} | No rules found for actor`);
-				return;
-			}
-
-			// Find exactly one group containing this actor
-			const group = findGroupContainingActor(rules, actor);
-			if (!group) {
-				console.log(`${MODULE_ID} | No group found containing actor: ${actor.name}`);
-				return;
-			}
-
-			console.log(`${MODULE_ID} | Found group: ${group.name} for actor: ${actor.name}`);
-			console.log(`${MODULE_ID} | Group has ${(group.distributionBlocks || []).length} distribution blocks`);
-
-			const grantLog = { currency: {}, items: [] };
-
-			// 1) Currency
-			if (group.currency) {
-				await withRetries(() => applyCurrency(actor, group.currency, grantLog));
-			}
-
-			// 2) Process each distribution block
-			for (const block of group.distributionBlocks || []) {
-				console.log(`${MODULE_ID} | Processing block: ${block.name} (type: ${block.type})`);
-				console.log(`${MODULE_ID} | Block has ${(block.items || []).length} items`);
-				
-				if (!block.items || block.items.length === 0) {
-					console.log(`${MODULE_ID} | Skipping empty block: ${block.name}`);
-					continue;
-				}
-				
-				let chosenItems = [];
-				
-				if (block.type === 'all') {
-					// Grant all items in the block
-					chosenItems = [...(block.items || [])];
-					console.log(`${MODULE_ID} | All items mode: selected ${chosenItems.length} items`);
-				} else if (block.type === 'pick') {
-					// Pick N items from the block
-					const count = block.count || 1;
-					const availableItems = block.items.filter(item => item.uuid);
-					console.log(`${MODULE_ID} | Pick mode: selecting ${count} from ${availableItems.length} available items`);
-					if (block.allowDuplicates) {
-						// Pick with replacement
-						for (let i = 0; i < count && availableItems.length > 0; i++) {
-							chosenItems.push(availableItems[Math.floor(Math.random() * availableItems.length)]);
-						}
-					} else {
-						// Pick without replacement
-						chosenItems = randomSample(availableItems, Math.min(count, availableItems.length));
-					}
-					console.log(`${MODULE_ID} | Pick mode: chose ${chosenItems.length} items`);
-				} else if (block.type === 'chance') {
-					// Roll to meet a target count between chanceMin and chanceMax
-					const minCount = Math.max(0, Number(block.chanceMin ?? 1));
-					const maxCount = Math.max(minCount, Number(block.chanceMax ?? minCount));
-					const target = randomIntegerInclusive(minCount, maxCount);
-					const pool = [...(block.items || [])];
-					const successes = [];
-					// Keep rolling through pool (shuffled each pass) until target met or pool exhausted (unless duplicates allowed)
-					const allowDup = !!block.allowDuplicates;
-					let safety = 1000;
-					while (successes.length < target && safety-- > 0) {
-						const order = [...pool];
-						// Shuffle order
-						for (let i = order.length - 1; i > 0; i--) {
-							const j = Math.floor(Math.random() * (i + 1));
-							[order[i], order[j]] = [order[j], order[i]];
-						}
-						for (const row of order) {
-							const p = typeof row.chance === 'number' ? row.chance : 0;
-							if (Math.random() * 100 < p) {
-								successes.push(row);
-								if (!allowDup) {
-									// remove from pool to avoid picking again
-									const idx = pool.indexOf(row);
-									if (idx >= 0) pool.splice(idx, 1);
-								}
-								if (successes.length >= target) break;
-							}
-						}
-						if (!allowDup && pool.length === 0) break;
-					}
-					chosenItems = successes;
-					console.log(`${MODULE_ID} | Chance mode: target ${target}, selected ${chosenItems.length}`);
-				}
-				
-				console.log(`${MODULE_ID} | Granting ${chosenItems.length} items from block: ${block.name}`);
-				// Grant the chosen items
-				await withRetries(() => grantItems(actor, chosenItems, grantLog));
-			}
-
-			// 3) Chat log
-			await postGMChatLog(actor, group, grantLog);
-		});
-	} catch (err) {
-		console.error(`${MODULE_ID} | Error applying loot on token creation`, err);
-	}
-});
-
-Hooks.on('preCreateToken', async (tokenDocument, data, options, userId) => {
-	try {
-		if (!game.user.isGM) return;
-		const enabled = !!game.settings.get(MODULE_ID, 'usePreCreateForUnlinked');
-		if (!enabled) return;
-		const isLinked = !!(data.actorLink ?? tokenDocument?.actorLink);
-		if (isLinked) return; // Only apply to unlinked tokens here
-
-		// Resolve base actor
-		const baseActorId = data.actorId || tokenDocument?.actor?.id;
-		const baseActor = baseActorId ? game.actors?.get(baseActorId) : null;
-		if (!baseActor) return;
-
-		const rules = getEffectiveRulesForActor(baseActor);
-		if (!rules) return;
-		const group = findGroupContainingActor(rules, baseActor);
-		if (!group) return;
-
-		const grantLog = { currency: {}, items: [] };
-
-		// Currency increments into token's actorData
-		const currencyIncr = {};
-		if (group.currency) {
-			const mapping = { pp: 'pp', gp: 'gp', ep: 'ep', sp: 'sp', cp: 'cp' };
-			for (const k of Object.keys(mapping)) {
-				const expr = group.currency[k];
-				if (!expr) continue;
-				let val = 0;
-				const rangeMatch = /^\s*(\d+)\s*-\s*(\d+)\s*$/u.exec(String(expr));
-				if (rangeMatch) {
-					const min = Number(rangeMatch[1]);
-					const max = Number(rangeMatch[2]);
-					const lo = Math.min(min, max);
-					const hi = Math.max(min, max);
-					val = Math.floor(Math.random() * (hi - lo + 1)) + lo;
-				} else if (/^\s*\d+\s*$/u.test(String(expr))) {
-					val = Number(expr);
-				} else {
-					const r = new Roll(String(expr));
-					await r.evaluate({ async: true });
-					val = Math.max(0, Math.floor(r.total ?? 0));
-				}
-				if (val > 0) {
-					currencyIncr[k] = (currencyIncr[k] ?? 0) + val;
-					grantLog.currency[k] = (grantLog.currency[k] ?? 0) + val;
-				}
-			}
-		}
-
-		// Select items according to blocks
-		const chosenRows = [];
-		for (const block of group.distributionBlocks || []) {
-			if (!block.items || block.items.length === 0) continue;
-			let chosenItems = [];
-			if (block.type === 'all') {
-				chosenItems = [...(block.items || [])];
-			} else if (block.type === 'pick') {
-				const count = block.count || 1;
-				const availableItems = block.items.filter(item => item.uuid);
-				if (block.allowDuplicates) {
-					for (let i = 0; i < count && availableItems.length > 0; i++) {
-						chosenItems.push(availableItems[Math.floor(Math.random() * availableItems.length)]);
-					}
-				} else {
-					chosenItems = randomSample(availableItems, Math.min(count, availableItems.length));
-				}
-			} else if (block.type === 'chance') {
-				const minCount = Math.max(0, Number(block.chanceMin ?? 1));
-				const maxCount = Math.max(minCount, Number(block.chanceMax ?? minCount));
-				const target = randomIntegerInclusive(minCount, maxCount);
-				const pool = [...(block.items || [])];
-				const successes = [];
-				const allowDup = !!block.allowDuplicates;
-				let safety = 1000;
-				while (successes.length < target && safety-- > 0) {
-					const order = [...pool];
-					for (let i = order.length - 1; i > 0; i--) {
-						const j = Math.floor(Math.random() * (i + 1));
-						[order[i], order[j]] = [order[j], order[i]];
-					}
-					for (const row of order) {
-						const p = typeof row.chance === 'number' ? row.chance : 0;
-						if (Math.random() * 100 < p) {
-							successes.push(row);
-							if (!allowDup) {
-								const idx = pool.indexOf(row);
-								if (idx >= 0) pool.splice(idx, 1);
-							}
-							if (successes.length >= target) break;
-						}
-					}
-					if (!allowDup && pool.length === 0) break;
-				}
-				chosenItems = successes;
-			}
-			chosenRows.push(...chosenItems);
-		}
-
-		// Resolve to embedded item data & attach to token data
-		const toCreate = [];
-		for (const row of chosenRows ?? []) {
-			if (!row?.uuid) continue;
-			const qty = randomIntegerInclusive(row.qtyMin ?? 1, row.qtyMax ?? 1);
-			try {
-				const doc = await fromUuid(row.uuid);
-				if (!doc) continue;
-				const dataObj = doc.toObject();
-				if (dataObj._id) delete dataObj._id;
-				dataObj.system = dataObj.system || {};
-				dataObj.system.quantity = qty;
-				dataObj.flags = dataObj.flags || {};
-				dataObj.flags[MODULE_ID] = { granted: true, groupId: row.groupId ?? null };
-				toCreate.push(dataObj);
-				grantLog.items.push({ name: dataObj.name, qty });
-			} catch {}
-		}
-
-		data.actorData = data.actorData || {};
-		if (Object.keys(currencyIncr).length) {
-			const cur = foundry.utils.deepClone((baseActor.system?.currency) ?? {});
-			for (const [k, v] of Object.entries(currencyIncr)) cur[k] = (cur[k] ?? 0) + Number(v);
-			data.actorData.system = data.actorData.system || {};
-			data.actorData.system.currency = cur;
-		}
-		if (toCreate.length) {
-			const existing = Array.isArray(data.actorData.items) ? data.actorData.items : [];
-			data.actorData.items = existing.concat(toCreate);
-		}
-
-		// Flag for post-chat and to avoid double granting
-		data.flags = data.flags || {};
-		data.flags[MODULE_ID] = data.flags[MODULE_ID] || {};
-		data.flags[MODULE_ID].preApplied = true;
-		data.flags[MODULE_ID].grantLog = grantLog;
-	} catch (e) {
-		console.warn(`${MODULE_ID} | preCreateToken failed`, e);
-	}
-});
-
-// JSON editor removed in favor of custom dialog
 
 /** @param {Actor} actor */
 function getEffectiveRulesForActor(actor) {
@@ -643,5 +330,39 @@ async function postGMChatLog(actor, group, grantLog) {
 		console.log(`${MODULE_ID} | Loot Summary: ${lines.join(' ')}`);
 	}
 }
+
+// Add an "Open Loot Groups" button to the Actor Directory footer (v13-safe)
+function injectLootGroupsButton(rootEl) {
+	try {
+		if (!rootEl || !rootEl.querySelector) return;
+		const container = rootEl.querySelector('.directory-footer') || rootEl.querySelector('footer');
+		if (!container) return;
+		if (container.querySelector('.tl-open-manager')) return;
+		const btn = document.createElement('button');
+		btn.type = 'button';
+		btn.className = 'tl-open-manager';
+		btn.innerHTML = '<i class="fas fa-list"></i> Loot Groups';
+		btn.addEventListener('click', () => openGroupManager());
+		container.appendChild(btn);
+	} catch (e) {
+		console.warn(`${MODULE_ID} | Failed to inject Loot Groups button`, e);
+	}
+}
+
+Hooks.on('renderActorDirectory', (app, html) => {
+	const root = (html?.[0]) || html || (app?.element?.[0]) || app?.element || null;
+	injectLootGroupsButton(root || document.querySelector('#actors'));
+});
+
+Hooks.on('renderSidebarTab', (app, html) => {
+	try {
+		const isActors = (app?.tabName === 'actors') || (app?.options?.id === 'actors') || (app?.id === 'actors');
+		if (!isActors) return;
+		const root = (html?.[0]) || html || (app?.element?.[0]) || app?.element || document.querySelector('#actors');
+		injectLootGroupsButton(root);
+	} catch (e) {
+		console.warn(`${MODULE_ID} | renderSidebarTab injection failed`, e);
+	}
+});
 
 

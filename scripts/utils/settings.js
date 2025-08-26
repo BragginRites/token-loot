@@ -4,7 +4,7 @@ export const MODULE_ID = 'token-loot';
 
 export function defaultSettings() {
 	return {
-		schema: 1,
+		schema: 2,
 		scopes: { world: { groups: {} }, scenes: {}, folders: {}, actors: {} }
 	};
 }
@@ -44,6 +44,56 @@ export function allActorUuids(worldRules) {
 		for (const u of worldRules.groups[gid].actorUUIDs || []) uuids.add(u);
 	}
 	return uuids;
+}
+
+export async function runMigrations() {
+	const current = getFullSettings();
+	let migrated = false;
+
+	if (!current.schema || current.schema < 2) {
+		const scopes = current.scopes || {};
+		for (const scopeKey of Object.keys(scopes)) {
+			const scope = scopes[scopeKey] || {};
+			const groups = scope.groups || {};
+			for (const gid of Object.keys(groups)) {
+				const g = groups[gid] || {};
+				const blocks = g.distributionBlocks || [];
+				for (const b of blocks) {
+					if (b && b.type === 'chance') {
+						if (b.chanceMin == null) b.chanceMin = 1;
+						if (b.chanceMax == null) b.chanceMax = b.chanceMin;
+					}
+				}
+				g.distributionBlocks = blocks;
+			}
+			scope.groups = groups;
+		}
+		current.scopes = scopes;
+		current.schema = 2;
+		migrated = true;
+	}
+
+	if (migrated) await setFullSettings(current);
+}
+
+export function registerReliabilitySettings() {
+	game.settings.register(MODULE_ID, 'usePreCreateForUnlinked', {
+		scope: 'world',
+		config: true,
+		name: 'Apply Loot in preCreate for Unlinked Tokens',
+		hint: 'When enabled, unlinked tokens receive loot in preCreate, avoiding race conditions.',
+		type: Boolean,
+		default: false
+	});
+
+	game.settings.register(MODULE_ID, 'awardStaggerMs', {
+		scope: 'world',
+		config: true,
+		name: 'Loot Award Stagger (ms)',
+		hint: 'Optional delay before awarding loot per token to reduce contention. 0 to disable.',
+		type: Number,
+		default: 0
+	});
 }
 
 

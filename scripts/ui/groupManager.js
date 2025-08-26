@@ -1,6 +1,11 @@
 'use strict';
 
 import { MODULE_ID, getWorldRuleSet, saveWorldRuleSet, slugify, allActorUuids } from '../utils/settings.js';
+import { openBlockContextMenu as openBlockContextMenuComponent } from './groupManager/components/ContextMenu.js';
+import { makeDraggable as attachDrag, makeResizable as attachResize, loadSavedSize as loadSavedPanelSize, saveSize as persistSize } from './groupManager/services/ResizeManager.js';
+import { enableDroppable as enableDroppableService, parseDrop as parseDropService } from './groupManager/services/DragDropManager.js';
+import { confirmDialog as confirmDialogComponent } from './groupManager/dialogs/ConfirmDialog.js';
+import { showBatchSettingsDialog as batchDialogComponent } from './groupManager/dialogs/BatchItemDialog.js';
 
 const OVERLAY_ID = 'tl-group-manager';
 
@@ -592,195 +597,8 @@ export function openGroupManager() {
 		return actors;
 	}
 
-	function showBatchSettingsDialog(folderName, itemCount) {
-		return new Promise(resolve => {
-			const overlay = document.createElement('div');
-			overlay.className = 'tl-confirm-overlay';
-			overlay.innerHTML = `
-				<div class="tl-confirm-dialog" style="min-width: 420px;">
-					<div class="tl-confirm-header">Add Items from Folder</div>
-					<div class="tl-confirm-body">
-						<p>Adding <strong>${itemCount}</strong> items from "<strong>${escapeHtml(folderName)}</strong>" folder</p>
-						<div style="margin-top: 16px;">
-							<div style="display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center;">
-								<label>Chance:</label><input id="batch-chance" type="number" min="0" max="100" value="100" style="padding: 6px 8px; border: 1px solid #2a2f3a; border-radius: 8px; background: #121723; color: #d6dbea;" />
-								<label>Quantity:</label><div style="display: flex; gap: 8px; align-items: center;">
-									<input id="batch-qmin" type="number" min="1" value="1" style="width: 60px; padding: 6px 8px; border: 1px solid #2a2f3a; border-radius: 8px; background: #121723; color: #d6dbea;" />
-									<span style="opacity: 0.6;">to</span>
-									<input id="batch-qmax" type="number" min="1" value="1" style="width: 60px; padding: 6px 8px; border: 1px solid #2a2f3a; border-radius: 8px; background: #121723; color: #d6dbea;" />
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="tl-confirm-actions">
-						<button class="tl-confirm-btn tl-confirm-cancel">Cancel</button>
-						<button class="tl-confirm-btn tl-confirm-ok" style="background: #2a4a2a; border-color: #3a5a3a;">Add Items</button>
-					</div>
-				</div>
-				<style>
-				.tl-confirm-overlay{position:fixed;inset:0;z-index:100000;background:transparent;display:flex;align-items:center;justify-content:center}
-				.tl-confirm-dialog{background:#0f1218;color:#e8ecf1;border:1px solid #2a2f3a;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);min-width:320px;max-width:480px}
-				.tl-confirm-header{padding:12px 16px;font-weight:800;font-size:16px;border-bottom:1px solid #2a2f3a;background:linear-gradient(180deg,#141824,#10141e)}
-				.tl-confirm-body{padding:16px;line-height:1.4}
-				.tl-confirm-actions{padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #2a2f3a}
-				.tl-confirm-btn{appearance:none;border:1px solid #2a2f3a;background:#161b28;color:#efece6;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
-				.tl-confirm-btn:hover{filter:brightness(1.06)}
-				</style>
-			`;
-			
-			document.body.appendChild(overlay);
-			
-			const handleResult = (result) => {
-				overlay.remove();
-				resolve(result);
-			};
-			
-			overlay.querySelector('.tl-confirm-ok').addEventListener('click', () => {
-				const chance = Number(overlay.querySelector('#batch-chance').value) || 100;
-				const qtyMin = Number(overlay.querySelector('#batch-qmin').value) || 1;
-				const qtyMax = Number(overlay.querySelector('#batch-qmax').value) || 1;
-				handleResult({ chance, qtyMin, qtyMax });
-			});
-			
-			overlay.querySelector('.tl-confirm-cancel').addEventListener('click', () => handleResult(null));
-			overlay.addEventListener('click', ev => { if (ev.target === overlay) handleResult(null); });
-			
-			// Focus the chance input
-			overlay.querySelector('#batch-chance').focus();
-		});
-	}
-}
-
-function closeIfOpen() {
-	document.getElementById(OVERLAY_ID)?.remove();
-}
-
-function template() {
-	return `
-<style>
-#${OVERLAY_ID}{position:fixed;inset:0;z-index:99999;pointer-events:none}
-#${OVERLAY_ID} *{box-sizing:border-box}
-#${OVERLAY_ID} .tl-panel{pointer-events:auto;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#0f1218;color:#e8ecf1;border:1px solid #2a2f3a;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:640px;min-height:400px;max-width:95vw;max-height:95vh;display:flex;flex-direction:column;resize:both;overflow:auto}
-#${OVERLAY_ID} .tl-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:linear-gradient(180deg,#141824,#10141e);border-bottom:1px solid #2a2f3a;cursor:move}
-#${OVERLAY_ID} .tl-title{font-weight:800;font-size:14px;letter-spacing:.3px;background:transparent;border:none;color:#e8ecf1;width:50%}
-#${OVERLAY_ID} .tl-close{appearance:none;border:none;width:28px;height:28px;border-radius:8px;background:#171b27;color:#c6ccda;cursor:pointer}
-#${OVERLAY_ID} .tl-close:hover{background:#1d2331}
-#${OVERLAY_ID} .tl-body{padding:12px;overflow:auto;display:grid;gap:12px}
-#${OVERLAY_ID} .tl-actions{display:flex;gap:8px}
-#${OVERLAY_ID} .tl-btn{appearance:none;border:1px solid #2a2f3a;background:#161b28;color:#efece6;padding:8px 10px;border-radius:8px;cursor:pointer;text-align:center;font-weight:700}
-#${OVERLAY_ID} .tl-btn:hover{filter:brightness(1.06)}
-#${OVERLAY_ID} .tl-danger{background:#2a1717;border-color:#3a2626}
-#${OVERLAY_ID} .tl-sep{margin:10px 0 6px;font-weight:800;color:#cfd6e4;border-top:1px solid #2a2f3a;padding-top:8px}
-#${OVERLAY_ID} .tl-empty{opacity:.7;padding:12px;border:1px dashed #2a2f3a;border-radius:8px;text-align:center}
-#${OVERLAY_ID} .tl-card{border:1px solid #2a2f3a;border-radius:10px;background:#10141e}
-#${OVERLAY_ID} .tl-card-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #2a2f3a}
-#${OVERLAY_ID} .tl-card.collapsed .tl-card-hdr{border-bottom:none}
-#${OVERLAY_ID} .tl-card-body{display:block}
-#${OVERLAY_ID} .tl-card.collapsed .tl-card-body{display:none}
-#${OVERLAY_ID} .tl-card-actions{display:flex;gap:8px}
-#${OVERLAY_ID} .tl-row{display:grid;grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:8px;align-items:center;padding:8px 12px}
-#${OVERLAY_ID} .tl-meta{grid-template-columns:auto 80px auto 80px 1fr auto}
-#${OVERLAY_ID} .tl-num{width:64px;min-width:64px;max-width:64px;padding:6px 8px;border:1px solid #2a2f3a;border-radius:8px;background:#121723;color:#d6dbea;text-align:right}
-#${OVERLAY_ID} .tl-spacer{flex:1}
-#${OVERLAY_ID} .tl-drop{padding:10px;border:1px dashed #2a2f3a;border-radius:8px;min-height:56px;display:flex;flex-wrap:wrap;gap:6px}
-#${OVERLAY_ID} .tl-items-list{display:block;max-height:500px;overflow-y:auto}
-#${OVERLAY_ID} .tl-items-list::-webkit-scrollbar{width:8px}
-#${OVERLAY_ID} .tl-items-list::-webkit-scrollbar-track{background:#0a0e14;border-radius:4px}
-#${OVERLAY_ID} .tl-items-list::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
-#${OVERLAY_ID} .tl-items-list::-webkit-scrollbar-thumb:hover{background:#3a3f4a}
-#${OVERLAY_ID} .tl-drop.drag{outline:2px solid #4b81ff}
-#${OVERLAY_ID} .tl-chip{background:#141a27;border:1px solid #2a2f3a;padding:4px 8px;border-radius:999px}
-#${OVERLAY_ID} .tl-chip{display:flex;align-items:center;gap:6px;position:relative}
-#${OVERLAY_ID} .tl-chip-delete{display:none;position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#2a1717;border:1px solid #3a2626;color:#ff6b6b;font-size:12px;line-height:1;cursor:pointer;appearance:none;padding:0}
-#${OVERLAY_ID} .tl-chip:hover .tl-chip-delete{display:flex;align-items:center;justify-content:center}
-#${OVERLAY_ID} .tl-chip-img{width:42px;height:42px;border-radius:6px;object-fit:cover}
-#${OVERLAY_ID} .tl-item{grid-template-columns:auto 1fr 1fr auto 64px auto 64px auto 64px auto;gap:10px;align-items:center}
-#${OVERLAY_ID} .tl-grid-spacer{grid-column:3/4}
-#${OVERLAY_ID} .tl-item-cell{display:flex;align-items:center;gap:10px;min-width:0}
-#${OVERLAY_ID} .tl-item-icon{width:42px;height:42px;border-radius:6px;object-fit:cover}
-#${OVERLAY_ID} .tl-item-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#${OVERLAY_ID} .tl-switch{display:flex;align-items:center;gap:6px}
-#${OVERLAY_ID} .tl-icon{appearance:none;border:1px solid #3a2626;background:#2a1717;color:#e8ecf1;padding:6px 8px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-#${OVERLAY_ID} .tl-icon .fa-trash{color:#ff6b6b}
-#${OVERLAY_ID} .tl-dash{opacity:.6}
-#${OVERLAY_ID} .tl-distribution{padding:8px 12px}
-#${OVERLAY_ID} .tl-distribution-buttons{display:flex;gap:8px;margin-bottom:8px}
-#${OVERLAY_ID} .tl-distribution-btn{font-size:12px;padding:6px 10px}
-#${OVERLAY_ID} .tl-distribution-btn.tl-active{background:#2a4a2a;border-color:#3a5a3a}
-#${OVERLAY_ID} .tl-distribution-config{display:grid;grid-template-columns:auto 80px auto 1fr auto;gap:8px;align-items:center}
-#${OVERLAY_ID} .tl-distribution-blocks{padding:8px 12px}
-#${OVERLAY_ID} .tl-distribution-block{border:1px solid #2a2f3a;border-radius:8px;margin-bottom:12px;background:#0a0e14}
-#${OVERLAY_ID} .tl-distribution-header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #2a2f3a}
-#${OVERLAY_ID} .tl-block-name{flex:1;padding:6px 8px;border:1px solid #2a2f3a;border-radius:8px;background:#121723;color:#d6dbea;font-weight:600}
-#${OVERLAY_ID} .tl-currency{padding:8px 12px}
-#${OVERLAY_ID} .tl-currency-row{display:grid;grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:8px;align-items:center;margin-bottom:8px}
-#${OVERLAY_ID} .tl-currency-row:last-child{margin-bottom:0}
-#${OVERLAY_ID} .tl-currency-input{padding:6px 8px;border:1px solid #2a2f3a;border-radius:8px;background:#121723;color:#d6dbea;font-size:12px}
-#${OVERLAY_ID} .tl-currency-spacer{grid-column:span 2}
-</style>
-<div class="tl-panel" role="dialog" aria-label="Loot Group Manager">
-	<div class="tl-hdr" id="tl-drag">
-		<div class="tl-title">Loot Group Manager</div>
-		<div class="tl-actions">
-			<button class="tl-btn" id="tl-add">Add Loot Group</button>
-			<button class="tl-close" id="tl-close">×</button>
-		</div>
-	</div>
-	<div class="tl-body">
-		<div id="tl-groups"></div>
-	</div>
-</div>
-`;
-}
-
-function enableDroppable(el, onDrop) {
-	el.addEventListener('dragover', ev => { ev.preventDefault(); el.classList.add('drag'); });
-	el.addEventListener('dragleave', () => el.classList.remove('drag'));
-	el.addEventListener('drop', async ev => {
-		ev.preventDefault(); el.classList.remove('drag');
-		const data = parseDrop(ev);
-		if (data) await onDrop(data);
-	});
-}
-
-function parseDrop(ev) {
-	try {
-		const txt = ev.dataTransfer?.getData('text/plain');
-		if (!txt) return null;
-		const data = JSON.parse(txt);
-		return data;
-	} catch { return null; }
-}
-
-function openBlockContextMenu(x, y, { onCopy, onPaste }) {
-	const menu = document.createElement('div');
-	menu.className = 'tl-context-menu';
-	menu.style.position = 'fixed';
-	menu.style.left = x + 'px';
-	menu.style.top = y + 'px';
-	menu.style.zIndex = 1000000;
-	menu.innerHTML = `
-		<div class="tl-context-item" data-action="copy">Copy Block</div>
-		<div class="tl-context-item" data-action="paste">Paste Block</div>
-		<style>
-		.tl-context-menu{background:#0f1218;border:1px solid #2a2f3a;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:160px;color:#e8ecf1}
-		.tl-context-item{padding:8px 12px;cursor:pointer}
-		.tl-context-item:hover{background:#1a1f2c}
-		</style>
-	`;
-	document.body.appendChild(menu);
-
-	const cleanup = () => { try { menu.remove(); } catch {} document.removeEventListener('click', onDoc); document.removeEventListener('contextmenu', onDoc); };
-	function onDoc(ev){ if (ev.target.closest('.tl-context-menu')) return; cleanup(); }
-	document.addEventListener('click', onDoc, { once: true });
-	document.addEventListener('contextmenu', onDoc, { once: true });
-
-	menu.addEventListener('click', ev => {
-		const action = ev.target.closest('.tl-context-item')?.dataset.action;
-		if (action === 'copy') { onCopy?.(); cleanup(); }
-		else if (action === 'paste') { onPaste?.(); cleanup(); }
-	});
-}
+	function showBatchSettingsDialog(folderName, itemCount) { return batchDialogComponent(folderName, itemCount); }
+function confirmDialog(title, message, skipConfirm = false) { return confirmDialogComponent(title, message, skipConfirm); }
 
 function promptAsync(label) {
 	return new Promise(resolve => {
@@ -815,87 +633,10 @@ function shortName(uuid) {
 
 function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
 
-function makeDraggable(panel, handle) {
-	let sx=0, sy=0, ox=0, oy=0, dragging=false;
-	panel.style.position='fixed'; panel.style.left='50%'; panel.style.top='50%'; panel.style.transform='translate(-50%,-50%)';
-	function start(e){ dragging=true; const p=(e.touches&&e.touches[0])||e; sx=p.clientX; sy=p.clientY; const r=panel.getBoundingClientRect(); ox=r.left; oy=r.top;
-		document.addEventListener('mousemove', move); document.addEventListener('mouseup', end);
-		document.addEventListener('touchmove', move, {passive:false}); document.addEventListener('touchend', end); }
-	function move(e){ if(!dragging) return; const p=(e.touches&&e.touches[0])||e; panel.style.left=(ox+p.clientX-sx)+'px'; panel.style.top=(oy+p.clientY-sy)+'px'; panel.style.transform='translate(0,0)'; if (e.cancelable) e.preventDefault(); }
-	function end(){ dragging=false; document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', end); document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); }
-	handle.addEventListener('mousedown', start); handle.addEventListener('touchstart', start, {passive:true});
+function makeDraggable(panel, handle) { return attachDrag(panel, handle); }
+function makeResizable(panel) { return attachResize(panel); }
+function saveSize(panel) { return persistSize(panel); }
+function loadSavedSize(panel) { return loadSavedPanelSize(panel); }
+
+
 }
-
-function makeResizable(panel) {
-	const resizeObserver = new ResizeObserver(() => saveSize(panel));
-	resizeObserver.observe(panel);
-	panel.addEventListener('mouseup', () => saveSize(panel));
-	panel.addEventListener('touchend', () => saveSize(panel));
-}
-
-function saveSize(panel) {
-	try {
-		const r = panel.getBoundingClientRect();
-		const size = { width: Math.round(r.width), height: Math.round(r.height) };
-		const existing = game.settings.get(MODULE_ID, 'groupManagerSize') || {};
-		if (existing.width === size.width && existing.height === size.height) return;
-		game.settings.set(MODULE_ID, 'groupManagerSize', size);
-	} catch {}
-}
-
-function loadSavedSize(panel) {
-	try {
-		const sz = game.settings.get(MODULE_ID, 'groupManagerSize') || {};
-		if (sz.width) panel.style.width = sz.width + 'px';
-		if (sz.height) panel.style.height = sz.height + 'px';
-	} catch {}
-}
-
-function confirmDialog(title, message, skipConfirm = false) {
-	return new Promise(resolve => {
-		// Skip confirmation if requested (e.g., when Shift key is held)
-		if (skipConfirm) {
-			resolve(true);
-			return;
-		}
-		
-		const overlay = document.createElement('div');
-		overlay.className = 'tl-confirm-overlay';
-		overlay.innerHTML = `
-			<div class="tl-confirm-dialog">
-				<div class="tl-confirm-header">${escapeHtml(title)}</div>
-				<div class="tl-confirm-body">${escapeHtml(message)}</div>
-				<div class="tl-confirm-actions">
-					<button class="tl-confirm-btn tl-confirm-cancel">Cancel</button>
-					<button class="tl-confirm-btn tl-confirm-ok tl-danger">Delete</button>
-				</div>
-			</div>
-			<style>
-			.tl-confirm-overlay{position:fixed;inset:0;z-index:100000;background:transparent;display:flex;align-items:center;justify-content:center}
-			.tl-confirm-dialog{background:#0f1218;color:#e8ecf1;border:1px solid #2a2f3a;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);min-width:320px;max-width:480px}
-			.tl-confirm-header{padding:12px 16px;font-weight:800;font-size:16px;border-bottom:1px solid #2a2f3a;background:linear-gradient(180deg,#141824,#10141e)}
-			.tl-confirm-body{padding:16px;line-height:1.4}
-			.tl-confirm-actions{padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #2a2f3a}
-			.tl-confirm-btn{appearance:none;border:1px solid #2a2f3a;background:#161b28;color:#efece6;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
-			.tl-confirm-btn:hover{filter:brightness(1.06)}
-			.tl-confirm-btn.tl-danger{background:#2a1717;border-color:#3a2626}
-			</style>
-		`;
-		
-		document.body.appendChild(overlay);
-		
-		const handleClick = (result) => {
-			overlay.remove();
-			resolve(result);
-		};
-		
-		overlay.querySelector('.tl-confirm-ok').addEventListener('click', () => handleClick(true));
-		overlay.querySelector('.tl-confirm-cancel').addEventListener('click', () => handleClick(false));
-		overlay.addEventListener('click', ev => { if (ev.target === overlay) handleClick(false); });
-		
-		// Focus the cancel button by default
-		overlay.querySelector('.tl-confirm-cancel').focus();
-	});
-}
-
-

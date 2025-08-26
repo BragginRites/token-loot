@@ -1,0 +1,21 @@
+<div class="tl-dialog">
+	<div class="tl-dialog-body">
+		<div class="tl-dialog-text">Adding {{itemCount}} items from "{{folderName}}"</div>
+		<div class="tl-grid">
+			<label>Chance</label>
+			<input class="tl-batch-chance" type="number" min="0" max="100" value="100" />
+			<label>Quantity Min</label>
+			<input class="tl-batch-qmin" type="number" min="1" value="1" />
+			<label>Quantity Max</label>
+			<input class="tl-batch-qmax" type="number" min="1" value="1" />
+		</div>
+		<label style="margin-top:8px;display:inline-flex;gap:6px;align-items:center;">
+			<input type="checkbox" class="tl-include-subfolders" {{includeSubfoldersChecked}} /> Include subfolders
+		</label>
+	</div>
+	<div class="tl-dialog-actions">
+		<button class="tl-btn tl-primary tl-apply">Add</button>
+		<button class="tl-btn tl-cancel">Cancel</button>
+	</div>
+</div>
+
