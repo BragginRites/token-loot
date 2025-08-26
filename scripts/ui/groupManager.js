@@ -7,6 +7,8 @@ const OVERLAY_ID = 'tl-group-manager';
 export function openGroupManager() {
 	closeIfOpen();
 	const state = { rules: structuredClone(getWorldRuleSet()) };
+	const collapsedBlocks = new Set();
+	let copiedBlock = null; // in-memory clipboard for distribution blocks
 	const overlay = document.createElement('div');
 	overlay.id = OVERLAY_ID;
 	overlay.innerHTML = template();
@@ -85,15 +87,20 @@ export function openGroupManager() {
 								</div>
 								<button class="tl-btn tl-danger tl-icon tl-remove-block" title="Remove Block"><i class="fas fa-trash"></i></button>
 							</div>
-							<div class="tl-distribution-config">
+							<div class="tl-distribution-config" style="display:${collapsedBlocks.has(block.id)?'none':''}">
 								${(block.type === 'pick') ? `
 									<label>Pick</label><input class="tl-num tl-distribution-count" type="number" min="1" value="${Number(block.count || 1)}" />
 									<label>items</label>
 									<label class="tl-spacer"></label>
 									<label><input class="tl-block-duplicates" type="checkbox" ${block.allowDuplicates?'checked':''}/> Allow duplicates</label>
+								` : (block.type === 'chance') ? `
+									<label>Min</label><input class="tl-num tl-ch-min" type="number" min="0" value="${Number(block.chanceMin ?? 1)}" />
+									<label>Max</label><input class="tl-num tl-ch-max" type="number" min="0" value="${Number(block.chanceMax ?? 1)}" />
+									<label class="tl-spacer"></label>
+									<label><input class="tl-block-duplicates" type="checkbox" ${block.allowDuplicates?'checked':''}/> Allow duplicates</label>
 								` : ''}
 							</div>
-							<div class="tl-drop tl-items tl-items-list" data-block-id="${block.id}">
+							<div class="tl-drop tl-items tl-items-list" data-block-id="${block.id}" style="display:${collapsedBlocks.has(block.id)?'none':''}">
 								${(block.items||[]).map(r => `<div class="tl-row tl-item" data-uuid="${escapeHtml(r.uuid)}">
 									<div class="tl-item-cell"><img class="tl-item-icon" src="" alt="" /><div class="tl-item-name">${shortName(r.uuid)}</div></div>
 									<span class="tl-grid-spacer"></span>
@@ -170,6 +177,33 @@ export function openGroupManager() {
 				const collapsed = blockEl.classList.toggle('tl-collapsed');
 				if (config) config.style.display = collapsed ? 'none' : '';
 				if (itemsList) itemsList.style.display = collapsed ? 'none' : '';
+				if (collapsed) collapsedBlocks.add(blockId); else collapsedBlocks.delete(blockId);
+			});
+
+			// Context menu for copy/paste
+			header?.addEventListener('contextmenu', ev => {
+				ev.preventDefault();
+				ev.stopPropagation();
+				ev.stopImmediatePropagation?.();
+				openBlockContextMenu(ev.clientX, ev.clientY, {
+					onCopy: () => {
+						copiedBlock = foundry.utils.deepClone(block);
+						ui.notifications?.info('Block copied');
+					},
+					onPaste: () => {
+						if (!copiedBlock) return ui.notifications?.warn('Nothing to paste');
+						const src = foundry.utils.deepClone(copiedBlock);
+						// Overwrite target block's properties but keep its id
+						block.name = src.name || block.name;
+						block.type = src.type || 'all';
+						block.count = Number(src.count || 1);
+						block.allowDuplicates = !!src.allowDuplicates;
+						block.items = Array.isArray(src.items) ? src.items.map(r => ({ ...r })) : [];
+						renderGroups();
+						autosave();
+						ui.notifications?.info('Block pasted over current block');
+					}
+				});
 			});
 			
 			// Block settings
@@ -179,6 +213,15 @@ export function openGroupManager() {
 			});
 			blockEl.querySelector('.tl-block-duplicates')?.addEventListener('change', ev => {
 				block.allowDuplicates = !!ev.currentTarget.checked;
+				autosaveDeferred();
+			});
+			// Chance min/max
+			blockEl.querySelector('.tl-ch-min')?.addEventListener('change', ev => {
+				block.chanceMin = Math.max(0, Number(ev.currentTarget.value||0));
+				autosaveDeferred();
+			});
+			blockEl.querySelector('.tl-ch-max')?.addEventListener('change', ev => {
+				block.chanceMax = Math.max(0, Number(ev.currentTarget.value||0));
 				autosaveDeferred();
 			});
 			
@@ -707,6 +750,36 @@ function parseDrop(ev) {
 		const data = JSON.parse(txt);
 		return data;
 	} catch { return null; }
+}
+
+function openBlockContextMenu(x, y, { onCopy, onPaste }) {
+	const menu = document.createElement('div');
+	menu.className = 'tl-context-menu';
+	menu.style.position = 'fixed';
+	menu.style.left = x + 'px';
+	menu.style.top = y + 'px';
+	menu.style.zIndex = 1000000;
+	menu.innerHTML = `
+		<div class="tl-context-item" data-action="copy">Copy Block</div>
+		<div class="tl-context-item" data-action="paste">Paste Block</div>
+		<style>
+		.tl-context-menu{background:#0f1218;border:1px solid #2a2f3a;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:160px;color:#e8ecf1}
+		.tl-context-item{padding:8px 12px;cursor:pointer}
+		.tl-context-item:hover{background:#1a1f2c}
+		</style>
+	`;
+	document.body.appendChild(menu);
+
+	const cleanup = () => { try { menu.remove(); } catch {} document.removeEventListener('click', onDoc); document.removeEventListener('contextmenu', onDoc); };
+	function onDoc(ev){ if (ev.target.closest('.tl-context-menu')) return; cleanup(); }
+	document.addEventListener('click', onDoc, { once: true });
+	document.addEventListener('contextmenu', onDoc, { once: true });
+
+	menu.addEventListener('click', ev => {
+		const action = ev.target.closest('.tl-context-item')?.dataset.action;
+		if (action === 'copy') { onCopy?.(); cleanup(); }
+		else if (action === 'paste') { onPaste?.(); cleanup(); }
+	});
 }
 
 function promptAsync(label) {
