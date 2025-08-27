@@ -25,7 +25,7 @@
 /* Block Header - Clean Top Section with Collapse Arrow */
 #tl-group-manager .tl-block-hdr {
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto auto;
     gap: 16px;
     align-items: center;
     padding: 16px 20px;
@@ -145,6 +145,30 @@
     transform: translateY(-1px);
 }
 
+/* Import/Export Buttons Container */
+#tl-group-manager .tl-block-io {
+    display: flex;
+    gap: 8px;
+}
+
+/* Auto-equip toggle */
+#tl-group-manager .tl-auto-equip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #9ca3af;
+    cursor: pointer;
+    user-select: none;
+}
+
+#tl-group-manager .tl-auto-equip-input {
+    width: 16px;
+    height: 16px;
+    accent-color: #4a8c2a;
+    cursor: pointer;
+}
+
 /* Configuration Section */
 #tl-group-manager .tl-distribution-config {
     display: flex;
@@ -193,7 +217,8 @@
     display: block;
     overflow: hidden;
     transition: max-height 0.3s ease, opacity 0.3s ease;
-    max-height: 800px;
+    /* Ensure each block gets enough vertical space for its rows and sticky header */
+    max-height: 1000px;
     opacity: 1;
 }
 

@@ -269,13 +269,55 @@ async function grantItems(actor, rows, grantLog) {
 				continue;
 			}
 			console.log(`${MODULE_ID} | Resolved item: ${doc.name}`);
-			const data = doc.toObject();
+			let data = doc.toObject();
 			// Ensure a new embedded Item is created, not an attempt to reuse compendium/world _id
 			if (data._id) delete data._id;
 			data.system = data.system || {};
 			data.system.quantity = qty;
 			data.flags = data.flags || {};
 			data.flags[MODULE_ID] = { granted: true, groupId: row.groupId ?? null };
+
+			// If the granted item is a spell, let the system create the proper scroll
+			try {
+				if (String(data.type) === 'spell' && (game.system?.id === 'dnd5e')) {
+					let scrollData = null;
+					const ItemCls = (CONFIG && CONFIG.Item && CONFIG.Item.documentClass) ? CONFIG.Item.documentClass : null;
+					try {
+						if (ItemCls && typeof ItemCls.createScrollFromSpell === 'function') {
+							const created = await ItemCls.createScrollFromSpell(doc);
+							scrollData = created?.toObject ? created.toObject() : created;
+						}
+					} catch {}
+					try {
+						if (!scrollData && game?.dnd5e?.documents?.Item5e?.createScrollFromSpell) {
+							const created = await game.dnd5e.documents.Item5e.createScrollFromSpell(doc);
+							scrollData = created?.toObject ? created.toObject() : created;
+						}
+					} catch {}
+					if (scrollData) {
+						if (scrollData._id) delete scrollData._id;
+						scrollData.system = scrollData.system || {};
+						scrollData.system.quantity = qty;
+						scrollData.flags = Object.assign(scrollData.flags || {}, { [MODULE_ID]: { granted: true, groupId: row.groupId ?? null, sourceSpellUuid: row.uuid } });
+						data = scrollData;
+					}
+				}
+			} catch {}
+
+			// Auto-equip where appropriate (honor per-row autoEquip flag propagated from block)
+			try {
+				const t = String(data.type || '').toLowerCase();
+				const shouldEquip = !!row.autoEquip;
+				if (shouldEquip && game.system?.id === 'dnd5e') {
+					if (t === 'weapon' || t === 'armor' || t === 'equipment') {
+						data.system = data.system || {};
+						if (typeof data.system.equipped === 'boolean') data.system.equipped = true;
+					}
+				} else if (shouldEquip && typeof data.system?.equipped === 'boolean') {
+					// Generic fallback for systems that use a boolean equipped field
+					data.system.equipped = true;
+				}
+			} catch {}
 			toCreate.push(data);
 			grantLog.items.push({ name: data.name, qty });
 			console.log(`${MODULE_ID} | Added ${data.name} x${qty} to creation queue`);

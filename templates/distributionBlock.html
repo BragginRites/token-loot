@@ -7,6 +7,11 @@
 			<button class="tl-btn tl-distribution-btn {{block.pickActive}}" data-type="pick">Pick N</button>
 			<button class="tl-btn tl-distribution-btn {{block.chanceActive}}" data-type="chance">Chances</button>
 		</div>
+		<div class="tl-block-io">
+			<button class="tl-btn tl-btn-sm tl-block-export" title="Export Block JSON">Export</button>
+			<button class="tl-btn tl-btn-sm tl-block-import" title="Import Block JSON">Import</button>
+		</div>
+		<label class="tl-auto-equip"><input type="checkbox" class="tl-auto-equip-input" {{block.autoEquipChecked}} /> Auto-equip</label>
 		<label class="tl-allow-dup"><input type="checkbox" class="tl-allow-dup-input" {{block.allowDuplicatesChecked}} /> Allow duplicates</label>
 		<button class="tl-btn tl-danger tl-block-delete" title="Remove Block"><i class="fas fa-trash"></i></button>
 	</div>

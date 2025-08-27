@@ -168,7 +168,22 @@ export async function openGroupManager() {
                 const headerWrap = document.createElement('div');
                 headerWrap.innerHTML = headerHtml.trim();
                 itemsRoot.appendChild(headerWrap.firstElementChild);
-                for (const row of (block.items || [])) {
+
+                // Resolve item names/images and sort alphabetically for display
+                const baseRows = [...(block.items || [])];
+                const rowsWithMeta = await Promise.all(baseRows.map(async r => {
+                    let name = '';
+                    let img = '';
+                    try {
+                        const doc = await fromUuid(r.uuid);
+                        name = doc?.name || '';
+                        img = doc?.img || '';
+                    } catch {}
+                    return { ...r, name, img, __sort: String(name).toLocaleLowerCase() };
+                }));
+                rowsWithMeta.sort((a, b) => a.__sort.localeCompare(b.__sort));
+
+                for (const row of rowsWithMeta) {
                     const rowData = { ...row, showChance: block.type === 'chance' };
                     itemsRoot.appendChild(await renderItemRow(rowData));
                 }
@@ -215,6 +230,11 @@ export async function openGroupManager() {
                     block.allowDuplicates = !!ev.currentTarget.checked;
                     autosaveDeferred();
                 });
+                // Auto-equip toggle
+                blockEl.querySelector('.tl-auto-equip-input')?.addEventListener('change', ev => {
+                    block.autoEquip = !!ev.currentTarget.checked;
+                    autosaveDeferred();
+                });
                 // Pick N count
                 blockEl.querySelector('.tl-distribution-count')?.addEventListener('change', ev => {
                     block.count = Math.max(1, Number(ev.currentTarget.value || 1));
@@ -236,6 +256,12 @@ export async function openGroupManager() {
                 if (pickCfg) pickCfg.style.display = (block.type === 'pick') ? '' : 'none';
                 if (chanceCfg) chanceCfg.style.display = (block.type === 'chance') ? '' : 'none';
 
+                // Persist block name edits
+                blockEl.querySelector('.tl-block-name')?.addEventListener('input', ev => {
+                    block.name = ev.currentTarget.value;
+                    autosaveDeferred();
+                });
+
                 // Remove block
                 blockEl.querySelector('.tl-block-delete')?.addEventListener('click', async (ev) => {
                     const { confirmDialog } = await import('./components/ContextMenu.js');
@@ -245,6 +271,89 @@ export async function openGroupManager() {
                     group.distributionBlocks = (group.distributionBlocks || []).filter(b => b !== block);
                     renderGroups();
                     autosave();
+                });
+
+                // Export block JSON
+                blockEl.querySelector('.tl-block-export')?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    try {
+                        const exportObj = {
+                            id: block.id,
+                            name: block.name,
+                            type: block.type,
+                            count: block.count,
+                            chanceMin: block.chanceMin,
+                            chanceMax: block.chanceMax,
+                            allowDuplicates: !!block.allowDuplicates,
+                            autoEquip: !!block.autoEquip,
+                            items: (block.items || []).map(r => ({ uuid: r.uuid, chance: r.chance ?? 100, qtyMin: r.qtyMin ?? 1, qtyMax: r.qtyMax ?? 1 }))
+                        };
+                        const safeName = (block.name || 'block').replace(/[^\w\-]+/gu, '_');
+                        const filename = `token-loot-block-${safeName}.json`;
+                        try {
+                            // Prefer Foundry utility which directly triggers a file download
+                            saveDataToFile(JSON.stringify(exportObj, null, 2), 'application/json', filename);
+                        } catch {
+                            // Fallback: manual blob download
+                            const blob = new Blob([JSON.stringify(exportObj, null, 2)], { type: 'application/json' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = filename;
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
+                        }
+                    } catch (e) {
+                        console.warn(`${MODULE_ID} | Export failed`, e);
+                        ui.notifications?.error('Export failed');
+                    }
+                });
+
+                // Import block JSON
+                blockEl.querySelector('.tl-block-import')?.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    try {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'application/json,.json';
+                        input.addEventListener('change', async () => {
+                            const file = input.files?.[0];
+                            if (!file) return;
+                            try {
+                                const text = await file.text();
+                                const data = JSON.parse(text);
+                                // Basic shape validation
+                                if (!data || typeof data !== 'object') throw new Error('Invalid JSON');
+                                if (!Array.isArray(data.items)) data.items = [];
+                                // Apply to current block
+                                block.name = data.name ?? block.name;
+                                block.type = data.type ?? block.type ?? 'all';
+                                block.count = Number.isFinite(data.count) ? Number(data.count) : block.count;
+                                block.chanceMin = Number.isFinite(data.chanceMin) ? Number(data.chanceMin) : block.chanceMin;
+                                block.chanceMax = Number.isFinite(data.chanceMax) ? Number(data.chanceMax) : block.chanceMax;
+                                block.allowDuplicates = !!data.allowDuplicates;
+                                block.autoEquip = !!data.autoEquip;
+                                block.items = data.items.map(r => ({
+                                    uuid: String(r.uuid || '').trim(),
+                                    chance: Number.isFinite(r.chance) ? Number(r.chance) : 100,
+                                    qtyMin: Number.isFinite(r.qtyMin) ? Number(r.qtyMin) : 1,
+                                    qtyMax: Number.isFinite(r.qtyMax) ? Number(r.qtyMax) : 1,
+                                })).filter(r => r.uuid);
+                                renderGroups();
+                                autosave();
+                                ui.notifications?.info('Block imported');
+                            } catch (e) {
+                                console.warn(`${MODULE_ID} | Import failed`, e);
+                                ui.notifications?.error('Import failed');
+                            }
+                        }, { once: true });
+                        input.click();
+                    } catch (e) {
+                        console.warn(`${MODULE_ID} | Import setup failed`, e);
+                        ui.notifications?.error('Import setup failed');
+                    }
                 });
 
                 // Item row deletions (event delegation on itemsRoot)
@@ -262,6 +371,43 @@ export async function openGroupManager() {
                     renderGroups();
                     autosave();
                 });
+
+                // Persist edits to chance/qty inputs (event delegation on itemsRoot)
+                const persistEdit = (ev) => {
+                    const input = ev.target;
+                    const rowEl = input.closest?.('.tl-item-row');
+                    if (!rowEl) return;
+                    const uuid = rowEl.getAttribute('data-uuid');
+                    if (!uuid) return;
+                    const entry = (block.items || []).find(r => r.uuid === uuid);
+                    if (!entry) return;
+                    const toNumber = (v, def) => {
+                        const n = Number(v);
+                        return Number.isFinite(n) ? n : def;
+                    };
+                    let changed = false;
+                    if (input.classList.contains('tl-item-chance')) {
+                        const val = Math.max(0, Math.min(100, toNumber(input.value, entry.chance ?? 100)));
+                        if (val !== entry.chance) { entry.chance = val; changed = true; }
+                        if (String(input.value) !== String(val)) input.value = String(val);
+                    } else if (input.classList.contains('tl-item-qtymin')) {
+                        const val = Math.max(0, toNumber(input.value, entry.qtyMin ?? 1));
+                        if (val !== entry.qtyMin) { entry.qtyMin = val; changed = true; }
+                    } else if (input.classList.contains('tl-item-qtymax')) {
+                        const val = Math.max(0, toNumber(input.value, entry.qtyMax ?? 1));
+                        if (val !== entry.qtyMax) { entry.qtyMax = val; changed = true; }
+                    }
+                    // Ensure qtyMax >= qtyMin
+                    if (entry.qtyMin != null && entry.qtyMax != null && entry.qtyMax < entry.qtyMin) {
+                        entry.qtyMax = entry.qtyMin;
+                        const maxEl = rowEl.querySelector('.tl-item-qtymax');
+                        if (maxEl) maxEl.value = String(entry.qtyMax);
+                        changed = true;
+                    }
+                    if (changed) autosaveDeferred();
+                };
+                itemsRoot.addEventListener('change', persistEdit);
+                itemsRoot.addEventListener('input', persistEdit);
             }
             // Add block button (now handled in template with event delegation)
             const addBlockBtn = card.querySelector('.tl-add-block');

@@ -78,6 +78,7 @@
 /* Item Lists */
 #tl-group-manager .tl-items-list {
     display: block;
+    /* Match height behavior across all blocks */
     max-height: 500px;
     overflow-y: auto;
 }
@@ -102,6 +103,7 @@
 
 #tl-group-manager .tl-items {
     display: block;
+    /* Match height behavior across all blocks */
     max-height: 500px;
     overflow-y: auto;
 }

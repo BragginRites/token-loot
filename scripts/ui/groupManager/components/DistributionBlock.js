@@ -16,7 +16,8 @@ export async function renderDistributionBlock(block) {
             chanceActive: (block.type || 'all') === 'chance' ? 'tl-active' : '',
             pickDisplay: (block.type === 'pick') ? '' : 'style="display:none"',
             chanceDisplay: (block.type === 'chance') ? '' : 'style="display:none"',
-            allowDuplicatesChecked: block.allowDuplicates ? 'checked' : ''
+            allowDuplicatesChecked: block.allowDuplicates ? 'checked' : '',
+            autoEquipChecked: block.autoEquip ? 'checked' : ''
         }
     });
     const wrapper = document.createElement('div');

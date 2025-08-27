@@ -39,7 +39,13 @@ export async function awardActor({ actor, group, grantLog, grantItems }) {
         } else if (block.type === 'chance') {
             chosen = selectChance(block.items || [], { min: Number(block.chanceMin ?? 1), max: Number(block.chanceMax ?? 1), allowDuplicates: !!block.allowDuplicates });
         }
-        await grantItems(actor, chosen, grantLog);
+        // Attach block context to each chosen row so grantItems can honor per-block options
+        const rowsWithContext = (chosen || []).map(r => ({
+            ...r,
+            groupId: block.id,
+            autoEquip: !!block.autoEquip
+        }));
+        await grantItems(actor, rowsWithContext, grantLog);
     }
 }
 
