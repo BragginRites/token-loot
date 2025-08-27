@@ -1,94 +1,22 @@
-.token-loot-log {
-	font-size: 12px;
-}
-.token-loot-log strong {
-	font-weight: 700;
-}
-.token-loot-log em {
-	font-style: italic;
-}
+/* ========================================
+   TOKEN LOOT MODULE - MODULAR STYLES
+   ======================================== */
 
-/* Group Manager Panel */
-#tl-group-manager{position:fixed;inset:0;z-index:99999;pointer-events:none}
-#tl-group-manager *{box-sizing:border-box}
-#tl-group-manager .tl-panel{pointer-events:auto;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#0f1218;color:#e8ecf1;border:1px solid #2a2f3a;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:640px;min-height:400px;max-width:95vw;max-height:95vh;display:flex;flex-direction:column;resize:both;overflow:auto}
-#tl-group-manager .tl-hdr{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:linear-gradient(180deg,#141824,#10141e);border-bottom:1px solid #2a2f3a;cursor:move}
-#tl-group-manager .tl-title{font-weight:800;font-size:14px;letter-spacing:.3px;background:transparent;border:none;color:#e8ecf1;width:50%}
-#tl-group-manager .tl-close{appearance:none;border:none;width:28px;height:28px;border-radius:8px;background:#171b27;color:#c6ccda;cursor:pointer}
-#tl-group-manager .tl-close:hover{background:#1d2331}
-#tl-group-manager .tl-body{padding:12px;overflow:auto;display:grid;gap:12px}
-#tl-group-manager .tl-actions{display:flex;gap:8px}
-#tl-group-manager .tl-btn{appearance:none;border:1px solid #2a2f3a;background:#161b28;color:#efece6;padding:8px 10px;border-radius:8px;cursor:pointer;text-align:center;font-weight:700}
-#tl-group-manager .tl-btn:hover{filter:brightness(1.06)}
-#tl-group-manager .tl-danger{background:#2a1717;border-color:#3a2626}
-#tl-group-manager .tl-sep{margin:10px 0 6px;font-weight:800;color:#cfd6e4;border-top:1px solid #2a2f3a;padding-top:8px}
-#tl-group-manager .tl-empty{opacity:.7;padding:12px;border:1px dashed #2a2f3a;border-radius:8px;text-align:center}
-#tl-group-manager .tl-card{border:1px solid #2a2f3a;border-radius:10px;background:#10141e}
-#tl-group-manager .tl-card-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #2a2f3a}
-#tl-group-manager .tl-card.collapsed .tl-card-hdr{border-bottom:none}
-#tl-group-manager .tl-card-body{display:block}
-#tl-group-manager .tl-card.collapsed .tl-card-body{display:none}
-#tl-group-manager .tl-card-actions{display:flex;gap:8px}
-#tl-group-manager .tl-row{display:grid;grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:8px;align-items:center;padding:8px 12px}
-#tl-group-manager .tl-meta{grid-template-columns:auto 80px auto 80px 1fr auto}
-#tl-group-manager .tl-num{width:64px;min-width:64px;max-width:64px;padding:6px 8px;border:1px solid #2a2f3a;border-radius:8px;background:#121723;color:#d6dbea;text-align:right}
-#tl-group-manager .tl-spacer{flex:1}
-#tl-group-manager .tl-drop{padding:10px;border:1px dashed #2a2f3a;border-radius:8px;min-height:56px;display:flex;flex-wrap:wrap;gap:6px}
-#tl-group-manager .tl-items-list{display:block;max-height:500px;overflow-y:auto}
-#tl-group-manager .tl-items-list::-webkit-scrollbar{width:8px}
-#tl-group-manager .tl-items-list::-webkit-scrollbar-track{background:#0a0e14;border-radius:4px}
-#tl-group-manager .tl-items-list::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
-#tl-group-manager .tl-items-list::-webkit-scrollbar-thumb:hover{background:#3a3f4a}
-#tl-group-manager .tl-items{display:block;max-height:500px;overflow-y:auto}
-#tl-group-manager .tl-items::-webkit-scrollbar{width:8px}
-#tl-group-manager .tl-items::-webkit-scrollbar-track{background:#0a0e14;border-radius:4px}
-#tl-group-manager .tl-items::-webkit-scrollbar-thumb{background:#2a2f3a;border-radius:4px}
-#tl-group-manager .tl-items::-webkit-scrollbar-thumb:hover{background:#3a3f4a}
-#tl-group-manager .tl-drop.drag{outline:2px solid #4b81ff}
-#tl-group-manager .tl-chip{background:#141a27;border:1px solid #2a2f3a;padding:4px 8px;border-radius:999px}
-#tl-group-manager .tl-chip{display:flex;align-items:center;gap:6px;position:relative}
-#tl-group-manager .tl-chip-delete{display:none;position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#2a1717;border:1px solid #3a2626;color:#ff6b6b;font-size:12px;line-height:1;cursor:pointer;appearance:none;padding:0}
-#tl-group-manager .tl-chip:hover .tl-chip-delete{display:flex;align-items:center;justify-content:center}
-#tl-group-manager .tl-chip-img{width:42px;height:42px;border-radius:6px;object-fit:cover}
-#tl-group-manager .tl-item{grid-template-columns:auto 1fr 1fr auto 64px auto 64px auto 64px auto;gap:10px;align-items:center}
-#tl-group-manager .tl-grid-spacer{grid-column:3/4}
-#tl-group-manager .tl-item-cell{display:flex;align-items:center;gap:10px;min-width:0}
-#tl-group-manager .tl-item-icon{width:42px;height:42px;border-radius:6px;object-fit:cover}
-#tl-group-manager .tl-item-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#tl-group-manager .tl-item-row{display:grid;grid-template-columns:auto 1fr auto 64px auto 64px auto 32px;gap:8px;align-items:center;padding:8px 12px}
-#tl-group-manager .tl-item-img{width:36px;height:36px;border-radius:6px;object-fit:cover}
-#tl-group-manager .tl-item-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#tl-group-manager .tl-item-chance,#tl-group-manager .tl-item-qtymin,#tl-group-manager .tl-item-qtymax{width:64px;min-width:64px;max-width:64px;padding:6px 8px;border:1px solid #2a2f3a;border-radius:8px;background:#121723;color:#d6dbea;text-align:right}
-#tl-group-manager .tl-switch{display:flex;align-items:center;gap:6px}
-#tl-group-manager .tl-icon{appearance:none;border:1px solid #3a2626;background:#2a1717;color:#e8ecf1;padding:6px 8px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-#tl-group-manager .tl-icon .fa-trash{color:#ff6b6b}
-#tl-group-manager .tl-dash{opacity:.6}
-#tl-group-manager .tl-distribution{padding:8px 12px}
-#tl-group-manager .tl-distribution-buttons{display:flex;gap:8px;margin-bottom:8px}
-#tl-group-manager .tl-distribution-btn{font-size:12px;padding:6px 10px}
-#tl-group-manager .tl-distribution-btn.tl-active{background:#2a4a2a;border-color:#3a5a3a}
-#tl-group-manager .tl-distribution-config{display:grid;grid-template-columns:auto 80px auto 1fr auto;gap:8px;align-items:center}
-#tl-group-manager .tl-distribution-blocks{padding:8px 12px}
-#tl-group-manager .tl-distribution-block{border:1px solid #2a2f3a;border-radius:8px;margin-bottom:12px;background:#0a0e14}
-#tl-group-manager .tl-distribution-header{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid #2a2f3a}
-#tl-group-manager .tl-block-name{flex:1;padding:6px 8px;border:1px solid #2a2f3a;border-radius:8px;background:#121723;color:#d6dbea;font-weight:600}
-#tl-group-manager .tl-currency{padding:8px 12px}
-#tl-group-manager .tl-currency-row{display:grid;grid-template-columns:auto 1fr auto 1fr auto 1fr;gap:8px;align-items:center;margin-bottom:8px}
-#tl-group-manager .tl-currency-row:last-child{margin-bottom:0}
-#tl-group-manager .tl-currency-input{padding:6px 8px;border:1px solid #2a2f3a;border-radius:8px;background:#121723;color:#d6dbea;font-size:12px}
-#tl-group-manager .tl-currency-spacer{grid-column:span 2}
+/* Base Styles */
+@import url('./base/logging.css');
 
-/* Context Menu */
-.tl-context-menu{background:#0f1218;border:1px solid #2a2f3a;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.5);min-width:160px;color:#e8ecf1}
-.tl-context-item{padding:8px 12px;cursor:pointer}
-.tl-context-item:hover{background:#1a1f2c}
+/* Layout Components */
+@import url('./layout/container.css');
+@import url('./layout/header.css');
 
-/* Confirm Dialogs (delete/remove, batch add) */
-.tl-confirm-overlay{position:fixed;inset:0;z-index:100000;background:transparent;display:flex;align-items:center;justify-content:center}
-.tl-confirm-dialog{background:#0f1218;color:#e8ecf1;border:1px solid #2a2f3a;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);min-width:320px;max-width:480px}
-.tl-confirm-header{padding:12px 16px;font-weight:800;font-size:16px;border-bottom:1px solid #2a2f3a;background:linear-gradient(180deg,#141824,#10141e)}
-.tl-confirm-body{padding:16px;line-height:1.4}
-.tl-confirm-actions{padding:12px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid #2a2f3a}
-.tl-confirm-btn{appearance:none;border:1px solid #2a2f3a;background:#161b28;color:#efece6;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700}
-.tl-confirm-btn:hover{filter:brightness(1.06)}
-.tl-confirm-btn.tl-danger{background:#2a1717;border-color:#3a2626}
+/* UI Components */
+@import url('./components/buttons.css');
+@import url('./components/sections.css');
+@import url('./components/groups.css');
+@import url('./components/actors.css');
+@import url('./components/currency.css');
+@import url('./components/distribution.css');
+@import url('./components/items.css');
+@import url('./components/dropzones.css');
+@import url('./components/dialogs.css');
+

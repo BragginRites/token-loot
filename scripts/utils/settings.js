@@ -38,13 +38,7 @@ export function slugify(name) {
 		.replace(/\s+/g, '-');
 }
 
-export function allActorUuids(worldRules) {
-	const uuids = new Set();
-	for (const gid of Object.keys(worldRules.groups || {})) {
-		for (const u of worldRules.groups[gid].actorUUIDs || []) uuids.add(u);
-	}
-	return uuids;
-}
+
 
 export async function runMigrations() {
 	const current = getFullSettings();

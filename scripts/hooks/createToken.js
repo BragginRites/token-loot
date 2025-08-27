@@ -4,15 +4,9 @@ import { MODULE_ID } from '../utils/settings.js';
 import { enqueueActorTask, withRetries } from '../domain/queue.js';
 import { awardActor } from '../domain/awardService.js';
 import { findGroupForActor } from '../domain/groupResolver.js';
-import { markGrantsStart, markGrantsDone, waitForGrants } from '../domain/grantTracker.js';
+import { markGrantsStart, markGrantsDone } from '../domain/grantTracker.js';
 
 export function setupCreateTokenHook() {
-    // expose API
-    try {
-        const mod = game.modules.get(MODULE_ID);
-        if (mod) mod.api = Object.assign(mod.api || {}, { waitForGrants });
-    } catch {}
-
     Hooks.on('createToken', async (tokenDocument, options, userId) => {
         try {
             if (!game.user.isGM) return;
@@ -82,7 +76,7 @@ async function grantItems(actor, rows, grantLog) {
             grantLog.items.push({ name: data.name, qty });
         } catch {}
     }
-    if (toCreate.length) await actor.createEmbeddedDocuments('Item', toCreate, { noBG3AutoAdd: true });
+    if (toCreate.length) await actor.createEmbeddedDocuments('Item', toCreate);
 }
 
 async function postGMChatLog(actor, group, grantLog) {

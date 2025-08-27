@@ -1,12 +1,13 @@
 'use strict';
 
-import { MODULE_ID, defaultSettings } from './utils/settings.js';
+import { MODULE_ID, defaultSettings, registerReliabilitySettings } from './utils/settings.js';
 import { openGroupManager } from './ui/groupManager/index.js';
 import { enqueueActorTask, withRetries } from './domain/queue.js';
 import { setupCreateTokenHook } from './hooks/createToken.js';
 import { setupPreCreateTokenHook } from './hooks/preCreateToken.js';
 import { setupRenderActorDirectoryHook } from './hooks/renderActorDirectory.js';
 import { runMigrations } from './utils/settings.js';
+import { setupBG3Compat } from './compat/bg3/index.js';
 
 /**
  * @typedef {Object} CurrencyRow
@@ -99,6 +100,7 @@ Hooks.once('ready', async () => {
 	setupCreateTokenHook();
 	setupPreCreateTokenHook();
 	setupRenderActorDirectoryHook();
+	setupBG3Compat();
 });
 
 // Per-actor queue and retry helpers moved to scripts/domain/queue.js

@@ -1,6 +1,6 @@
 'use strict';
 
-import { MODULE_ID, getWorldRuleSet, saveWorldRuleSet, slugify, allActorUuids } from '../../utils/settings.js';
+import { MODULE_ID, getWorldRuleSet, saveWorldRuleSet, slugify } from '../../utils/settings.js';
 import { loadTemplate } from './services/TemplateLoader.js';
 import { makeDraggable, makeResizable, loadSavedSize } from './services/ResizeManager.js';
 import { openBlockContextMenu } from './components/ContextMenu.js';
@@ -12,6 +12,40 @@ import { renderActorChip } from './components/ActorChips.js';
 import { bindCurrencyForm } from './components/CurrencyForm.js';
 
 const OVERLAY_ID = 'tl-group-manager';
+
+// Helper functions for section collapse state
+function getCollapsedState(groupId, sectionId) {
+    const key = `tl-collapsed-${groupId}-${sectionId}`;
+    return localStorage.getItem(key) === 'true';
+}
+
+function saveCollapsedState(groupId, sectionId, isCollapsed) {
+    const key = `tl-collapsed-${groupId}-${sectionId}`;
+    if (isCollapsed) {
+        localStorage.setItem(key, 'true');
+    } else {
+        localStorage.removeItem(key);
+    }
+}
+
+function collapseAllSections() {
+    // Collapse all groups
+    const groups = document.querySelectorAll('#tl-group-manager .tl-card');
+    groups.forEach(group => {
+        group.classList.add('collapsed');
+        const groupId = group.dataset.gid;
+        saveCollapsedState(groupId, 'group', true);
+    });
+    
+    // Collapse all sections within groups
+    const sections = document.querySelectorAll('#tl-group-manager .tl-section');
+    sections.forEach(section => {
+        section.classList.add('collapsed');
+        const groupId = section.closest('.tl-card').dataset.gid;
+        const sectionId = section.dataset.section;
+        saveCollapsedState(groupId, sectionId, true);
+    });
+}
 
 export async function openGroupManager() {
     closeIfOpen();
@@ -29,6 +63,11 @@ export async function openGroupManager() {
 
     // Wire basic actions; detailed componentization will migrate from legacy file
     overlay.querySelector('#tl-close')?.addEventListener('click', () => closeIfOpen());
+
+    // Collapse all sections
+    overlay.querySelector('#tl-collapse-all')?.addEventListener('click', () => {
+        collapseAllSections();
+    });
 
     // Add group
     overlay.querySelector('#tl-add')?.addEventListener('click', () => {
@@ -69,12 +108,30 @@ export async function openGroupManager() {
             const actorsEl = card.querySelector('.tl-actors');
             enableDroppable(actorsEl, async data => {
                 if (data.type === 'Actor' && data.uuid) {
-                    const all = allActorUuids(state.rules);
-                    if (all.has(data.uuid)) return ui.notifications?.warn('Actor is already in another group.');
                     group.actorUUIDs = group.actorUUIDs || [];
-                    group.actorUUIDs.push(data.uuid);
-                    await renderGroups();
-                    autosave();
+                    // Allow actors to be in multiple groups - no restriction check
+                    if (!group.actorUUIDs.includes(data.uuid)) {
+                        group.actorUUIDs.push(data.uuid);
+                        await renderGroups();
+                        autosave();
+                    }
+                } else if (data.type === 'Folder' && data.uuid) {
+                    try {
+                        const folder = await fromUuid(data.uuid);
+                        if (!folder) return;
+                        const uuids = await collectActorsFromFolder(folder);
+                        if (!uuids.length) return ui.notifications?.warn(`No actors found in folder "${folder.name}"`);
+                        group.actorUUIDs = group.actorUUIDs || [];
+                        // Filter out actors already in THIS group (but allow duplicates across groups)
+                        const newOnes = uuids.filter(u => !group.actorUUIDs.includes(u));
+                        if (!newOnes.length) return ui.notifications?.warn(`All actors from "${folder.name}" are already in this group.`);
+                        group.actorUUIDs.push(...newOnes);
+                        await renderGroups();
+                        autosave();
+                        ui.notifications?.info(`Added ${newOnes.length} actors from "${folder.name}"`);
+                    } catch (e) {
+                        console.warn(`${MODULE_ID} | Actor folder drop failed`, e);
+                    }
                 }
             });
             await renderActorChips(actorsEl, group.actorUUIDs || []);
@@ -84,11 +141,42 @@ export async function openGroupManager() {
             for (const block of (group.distributionBlocks || [])) {
                 const blockEl = await renderDistributionBlock(block);
                 blocksEl.appendChild(blockEl);
+                
+                // Block collapse functionality
+                const blockHeader = blockEl.querySelector('.tl-block-hdr');
+                const blockId = block.id || `block-${Date.now()}`;
+                
+                // Restore collapsed state
+                const isCollapsed = getCollapsedState(group.id, `block-${blockId}`);
+                if (isCollapsed) blockEl.classList.add('collapsed');
+                
+                blockHeader.addEventListener('click', (e) => {
+                    // Don't collapse if clicking on input fields or buttons
+                    if (e.target.closest('.tl-block-name') || 
+                        e.target.closest('.tl-distribution-buttons') || 
+                        e.target.closest('.tl-allow-dup') || 
+                        e.target.closest('.tl-block-delete')) return;
+                    
+                    blockEl.classList.toggle('collapsed');
+                    saveCollapsedState(group.id, `block-${blockId}`, blockEl.classList.contains('collapsed'));
+                });
+                
                 // Items list
                 const itemsRoot = blockEl.querySelector('.tl-items');
+                // Render header once per block
+                const headerHtml = await loadTemplate('itemHeader.html', { chanceHeaderDisplay: (block.type === 'chance') ? '' : 'style="display:none"' });
+                const headerWrap = document.createElement('div');
+                headerWrap.innerHTML = headerHtml.trim();
+                itemsRoot.appendChild(headerWrap.firstElementChild);
                 for (const row of (block.items || [])) {
                     const rowData = { ...row, showChance: block.type === 'chance' };
                     itemsRoot.appendChild(await renderItemRow(rowData));
+                }
+                if (!((block.items || []).length)) {
+                    const hint = document.createElement('div');
+                    hint.className = 'tl-hint';
+                    hint.textContent = 'Drag items or folders of items here';
+                    itemsRoot.appendChild(hint);
                 }
                 enableDroppable(itemsRoot, async data => {
                     if (data.type === 'Item' && data.uuid) {
@@ -96,6 +184,22 @@ export async function openGroupManager() {
                         block.items.push({ uuid: data.uuid, chance: 100, qtyMin: 1, qtyMax: 1 });
                         await renderGroups();
                         autosave();
+                    } else if (data.type === 'Folder' && data.uuid) {
+                        try {
+                            const folder = await fromUuid(data.uuid);
+                            if (!folder) return;
+                            const itemUuids = await collectItemsFromFolder(folder);
+                            if (!itemUuids.length) return ui.notifications?.warn(`No items found in folder "${folder.name}"`);
+                            const existing = new Set((block.items || []).map(r => r.uuid));
+                            const toAdd = itemUuids.filter(u => !existing.has(u));
+                            block.items = block.items || [];
+                            for (const u of toAdd) block.items.push({ uuid: u, chance: 100, qtyMin: 1, qtyMax: 1 });
+                            await renderGroups();
+                            autosave();
+                            ui.notifications?.info(`Added ${toAdd.length} items from "${folder.name}"`);
+                        } catch (e) {
+                            console.warn(`${MODULE_ID} | Item folder drop failed`, e);
+                        }
                     }
                 });
                 // Block type and allow duplicates
@@ -111,6 +215,27 @@ export async function openGroupManager() {
                     block.allowDuplicates = !!ev.currentTarget.checked;
                     autosaveDeferred();
                 });
+                // Pick N count
+                blockEl.querySelector('.tl-distribution-count')?.addEventListener('change', ev => {
+                    block.count = Math.max(1, Number(ev.currentTarget.value || 1));
+                    autosaveDeferred();
+                });
+                // Chance min/max
+                blockEl.querySelector('.tl-ch-min')?.addEventListener('change', ev => {
+                    block.chanceMin = Math.max(0, Number(ev.currentTarget.value || 0));
+                    autosaveDeferred();
+                });
+                blockEl.querySelector('.tl-ch-max')?.addEventListener('change', ev => {
+                    block.chanceMax = Math.max(0, Number(ev.currentTarget.value || 0));
+                    autosaveDeferred();
+                });
+
+                // Ensure only the relevant config is visible
+                const pickCfg = blockEl.querySelector('.tl-config-pick');
+                const chanceCfg = blockEl.querySelector('.tl-config-chance');
+                if (pickCfg) pickCfg.style.display = (block.type === 'pick') ? '' : 'none';
+                if (chanceCfg) chanceCfg.style.display = (block.type === 'chance') ? '' : 'none';
+
                 // Remove block
                 blockEl.querySelector('.tl-block-delete')?.addEventListener('click', async (ev) => {
                     const { confirmDialog } = await import('./components/ContextMenu.js');
@@ -138,18 +263,102 @@ export async function openGroupManager() {
                     autosave();
                 });
             }
-            // Add block button
-            const addBlockBtn = document.createElement('button');
-            addBlockBtn.className = 'tl-btn tl-add-block';
-            addBlockBtn.textContent = 'Add Distribution Block';
-            addBlockBtn.addEventListener('click', () => {
-                group.distributionBlocks = group.distributionBlocks || [];
-                const blockId = `block-${Date.now()}`;
-                group.distributionBlocks.push({ id: blockId, name: 'New Block', type: 'all', count: 1, allowDuplicates: false, items: [] });
+            // Add block button (now handled in template with event delegation)
+            const addBlockBtn = card.querySelector('.tl-add-block');
+            if (addBlockBtn) {
+                addBlockBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent section header click
+                    group.distributionBlocks = group.distributionBlocks || [];
+                    const blockId = `block-${Date.now()}`;
+                    group.distributionBlocks.push({ id: blockId, name: 'New Block', type: 'all', count: 1, allowDuplicates: false, items: [] });
+                    renderGroups();
+                    autosave();
+                });
+            }
+
+            // Group collapse functionality
+            const cardHeader = card.querySelector('.tl-card-hdr');
+            const groupId = group.id;
+            
+            // Restore group collapsed state
+            const isGroupCollapsed = getCollapsedState(groupId, 'group');
+            if (isGroupCollapsed) {
+                card.classList.add('collapsed');
+            }
+            
+            cardHeader.addEventListener('click', (e) => {
+                // Don't collapse if clicking on title input or buttons
+                if (e.target.closest('.tl-title') || e.target.closest('.tl-card-actions')) return;
+                
+                card.classList.toggle('collapsed');
+                saveCollapsedState(groupId, 'group', card.classList.contains('collapsed'));
+            });
+
+            // Section collapse functionality
+            const sections = card.querySelectorAll('.tl-section');
+            sections.forEach(section => {
+                const header = section.querySelector('.tl-section-header');
+                const sectionId = section.dataset.section;
+                
+                // Restore collapsed state from storage
+                const isCollapsed = getCollapsedState(groupId, sectionId);
+                if (isCollapsed) {
+                    section.classList.add('collapsed');
+                }
+                
+                header.addEventListener('click', (e) => {
+                    // Don't collapse if clicking on buttons
+                    if (e.target.closest('.tl-section-actions')) return;
+                    
+                    section.classList.toggle('collapsed');
+                    saveCollapsedState(groupId, sectionId, section.classList.contains('collapsed'));
+                });
+            });
+
+            // Clear all actors
+            card.querySelector('.tl-clear-actors')?.addEventListener('click', async (e) => {
+                e.stopPropagation(); // Prevent section header click
+                
+                const { confirmDialog } = await import('./dialogs/ConfirmDialog.js');
+                const confirmed = await confirmDialog(
+                    'Clear All Actors',
+                    `Are you sure you want to remove all actors from "${group.name}"?`,
+                    { danger: true }
+                );
+                
+                if (confirmed) {
+                    group.actorUUIDs = [];
+                    renderGroups();
+                    autosave();
+                }
+            });
+
+            // Duplicate group
+            card.querySelector('.tl-duplicate')?.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent header click
+                const originalGroup = group;
+                const baseTitle = `${originalGroup.name} Copy`;
+                const id = uniqueGroupId(state.rules, slugify(baseTitle) || 'group');
+                
+                // Deep clone the group
+                const duplicatedGroup = {
+                    ...structuredClone(originalGroup),
+                    id,
+                    name: baseTitle
+                };
+                
+                // Generate new IDs for distribution blocks and items
+                if (duplicatedGroup.distributionBlocks) {
+                    duplicatedGroup.distributionBlocks = duplicatedGroup.distributionBlocks.map(block => ({
+                        ...block,
+                        id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                    }));
+                }
+                
+                state.rules.groups[id] = duplicatedGroup;
                 renderGroups();
                 autosave();
             });
-            blocksEl.appendChild(addBlockBtn);
 
             // Delete group
             card.querySelector('.tl-delete')?.addEventListener('click', async (ev) => {
@@ -171,7 +380,7 @@ export async function openGroupManager() {
         if (!uuids.length) {
             const hint = document.createElement('div');
             hint.className = 'tl-hint';
-            hint.textContent = 'Drag actors here';
+            hint.textContent = 'Drag individual actors or folders of actors here';
             root.appendChild(hint);
             return;
         }
@@ -217,6 +426,50 @@ export async function openGroupManager() {
                 if (iconEl && doc?.img) iconEl.src = doc.img;
             }).catch(() => {});
         }
+    }
+
+    // v13-safe folder traversal helpers
+    async function collectItemsFromFolder(folder) {
+        const out = [];
+        const targetId = folder?.id;
+        if (!targetId) return out;
+        if (folder.pack) {
+            const pack = game.packs.get(folder.pack);
+            if (pack && pack.documentName === 'Item') {
+                const docs = await pack.getDocuments();
+                for (const d of docs) if (isFolderOrAncestor(d.folder, targetId)) out.push(d.uuid);
+            }
+        } else {
+            for (const it of game.items) if (isFolderOrAncestor(it.folder, targetId)) out.push(it.uuid);
+        }
+        return out;
+    }
+
+    async function collectActorsFromFolder(folder) {
+        const out = [];
+        const targetId = folder?.id;
+        if (!targetId) return out;
+        if (folder.pack) {
+            const pack = game.packs.get(folder.pack);
+            if (pack && pack.documentName === 'Actor') {
+                const docs = await pack.getDocuments();
+                for (const d of docs) if (isFolderOrAncestor(d.folder, targetId)) out.push(d.uuid);
+            }
+        } else if (folder.contents) {
+            for (const a of folder.contents) out.push(a.uuid);
+        } else {
+            for (const a of game.actors) if (isFolderOrAncestor(a.folder, targetId)) out.push(a.uuid);
+        }
+        return out;
+    }
+
+    function isFolderOrAncestor(folderDoc, targetId) {
+        let cur = folderDoc;
+        while (cur) {
+            if (cur.id === targetId) return true;
+            cur = cur.folder;
+        }
+        return false;
     }
 
     function uniqueGroupId(rules, base) {

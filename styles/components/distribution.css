@@ -1,0 +1,203 @@
+/* ========================================
+   DISTRIBUTION BLOCKS
+   ======================================== */
+
+/* Distribution Blocks Container */
+#tl-group-manager .tl-distribution-blocks {
+    padding: 20px;
+    background: rgba(10, 14, 20, 0.3);
+}
+
+/* Distribution Block - Modern Card Design */
+#tl-group-manager .tl-distribution-block {
+    border: 1px solid #3a4a5a;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #0a0e14 0%, #060a0f 100%);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+#tl-group-manager .tl-distribution-block:last-child {
+    margin-bottom: 0;
+}
+
+/* Block Header - Clean Top Section with Collapse Arrow */
+#tl-group-manager .tl-block-hdr {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    gap: 16px;
+    align-items: center;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #151b26 0%, #121723 100%);
+    border-bottom: 1px solid #2a2f3a;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#tl-group-manager .tl-block-hdr:hover {
+    background: linear-gradient(135deg, #1a2332 0%, #151b26 100%);
+}
+
+/* Collapse Arrow for Distribution Blocks */
+#tl-group-manager .tl-block-hdr .tl-collapse-arrow {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+#tl-group-manager .tl-distribution-block.collapsed .tl-collapse-arrow {
+    transform: rotate(-90deg);
+}
+
+#tl-group-manager .tl-distribution-block.collapsed .tl-block-hdr {
+    border-bottom: none;
+}
+
+#tl-group-manager .tl-block-name {
+    padding: 10px 14px;
+    border: 1px solid #3a4a5a;
+    border-radius: 8px;
+    background: #0a0e14;
+    color: #e8ecf1;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#tl-group-manager .tl-block-name:focus {
+    border-color: #4a8c2a;
+    box-shadow: 0 0 0 2px rgba(74, 140, 42, 0.2);
+    outline: none;
+}
+
+/* Distribution Type Buttons - Pill Style */
+#tl-group-manager .tl-distribution-buttons {
+    display: flex;
+    gap: 2px;
+    background: #0a0e14;
+    padding: 3px;
+    border-radius: 10px;
+    border: 1px solid #2a2f3a;
+}
+
+#tl-group-manager .tl-distribution-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+#tl-group-manager .tl-distribution-btn:hover {
+    background: #1a2332;
+    color: #d6dbea;
+}
+
+#tl-group-manager .tl-distribution-btn.tl-active {
+    background: #4a8c2a;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(74, 140, 42, 0.3);
+}
+
+/* Allow Duplicates - Clean Toggle */
+#tl-group-manager .tl-allow-dup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #9ca3af;
+    cursor: pointer;
+    user-select: none;
+}
+
+#tl-group-manager .tl-allow-dup-input {
+    width: 16px;
+    height: 16px;
+    accent-color: #4a8c2a;
+    cursor: pointer;
+}
+
+/* Delete Button - Subtle Danger */
+#tl-group-manager .tl-block-delete {
+    padding: 8px;
+    border: 1px solid #3a2626;
+    background: #2a1717;
+    color: #ff6b6b;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#tl-group-manager .tl-block-delete:hover {
+    background: #3a2626;
+    border-color: #4a2f2f;
+    transform: translateY(-1px);
+}
+
+/* Configuration Section */
+#tl-group-manager .tl-distribution-config {
+    display: flex;
+    gap: 24px;
+    padding: 16px 20px;
+    background: rgba(10, 14, 20, 0.5);
+    border-bottom: 1px solid #2a2f3a;
+}
+
+#tl-group-manager .tl-config-pick,
+#tl-group-manager .tl-config-chance {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#tl-group-manager .tl-config-pick label,
+#tl-group-manager .tl-config-chance label {
+    font-size: 13px;
+    color: #a0a5b5;
+    font-weight: 500;
+    min-width: 70px;
+    white-space: nowrap;
+}
+
+#tl-group-manager .tl-num {
+    width: 70px;
+    padding: 8px 12px;
+    border: 1px solid #3a4a5a;
+    border-radius: 8px;
+    background: #0a0e14;
+    color: #e8ecf1;
+    text-align: center;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+
+#tl-group-manager .tl-num:focus {
+    border-color: #4a8c2a;
+    box-shadow: 0 0 0 2px rgba(74, 140, 42, 0.2);
+    outline: none;
+}
+
+/* Block Body - Collapsible Content */
+#tl-group-manager .tl-block-body {
+    display: block;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 800px;
+    opacity: 1;
+}
+
+#tl-group-manager .tl-distribution-block.collapsed .tl-block-body {
+    max-height: 0;
+    opacity: 0;
+}

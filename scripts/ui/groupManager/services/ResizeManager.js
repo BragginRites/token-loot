@@ -14,10 +14,85 @@ export function makeDraggable(panel, handle) {
 }
 
 export function makeResizable(panel) {
+    // Create the resize handle element
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'tl-resize-handle';
+    panel.appendChild(resizeHandle);
+
+    let isResizing = false;
+    let startX = 0, startY = 0;
+    let startWidth = 0, startHeight = 0;
+
+    function startResize(e) {
+        isResizing = true;
+        const touch = e.touches && e.touches[0];
+        const clientX = touch ? touch.clientX : e.clientX;
+        const clientY = touch ? touch.clientY : e.clientY;
+        
+        startX = clientX;
+        startY = clientY;
+        
+        const rect = panel.getBoundingClientRect();
+        startWidth = rect.width;
+        startHeight = rect.height;
+        
+        // Prevent text selection during resize
+        document.body.style.userSelect = 'none';
+        document.body.style.pointerEvents = 'none';
+        panel.style.pointerEvents = 'auto';
+        
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResize);
+        document.addEventListener('touchmove', resize, { passive: false });
+        document.addEventListener('touchend', stopResize);
+        
+        if (e.preventDefault) e.preventDefault();
+    }
+
+    function resize(e) {
+        if (!isResizing) return;
+        
+        const touch = e.touches && e.touches[0];
+        const clientX = touch ? touch.clientX : e.clientX;
+        const clientY = touch ? touch.clientY : e.clientY;
+        
+        const deltaX = clientX - startX;
+        const deltaY = clientY - startY;
+        
+        const newWidth = Math.max(400, Math.min(startWidth + deltaX, window.innerWidth * 0.95));
+        const newHeight = Math.max(300, Math.min(startHeight + deltaY, window.innerHeight * 0.95));
+        
+        panel.style.width = newWidth + 'px';
+        panel.style.height = newHeight + 'px';
+        
+        if (e.preventDefault) e.preventDefault();
+    }
+
+    function stopResize() {
+        if (!isResizing) return;
+        
+        isResizing = false;
+        
+        // Restore normal interaction
+        document.body.style.userSelect = '';
+        document.body.style.pointerEvents = '';
+        
+        document.removeEventListener('mousemove', resize);
+        document.removeEventListener('mouseup', stopResize);
+        document.removeEventListener('touchmove', resize);
+        document.removeEventListener('touchend', stopResize);
+        
+        // Save the new size
+        saveSize(panel);
+    }
+
+    // Bind resize events to the handle
+    resizeHandle.addEventListener('mousedown', startResize);
+    resizeHandle.addEventListener('touchstart', startResize, { passive: false });
+
+    // Keep the resize observer for other resize events
     const resizeObserver = new ResizeObserver(() => saveSize(panel));
     resizeObserver.observe(panel);
-    panel.addEventListener('mouseup', () => saveSize(panel));
-    panel.addEventListener('touchend', () => saveSize(panel));
 }
 
 export function saveSize(panel) {

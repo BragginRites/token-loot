@@ -8,10 +8,7 @@ import { loadTemplate } from '../services/TemplateLoader.js';
  */
 export async function renderItemRow(item) {
     const html = await loadTemplate('itemRow.html', {
-        item: {
-            ...item,
-            chanceDisplay: item.showChance ? '' : 'style="display:none"'
-        }
+        item: { ...item }
     });
     const wrapper = document.createElement('div');
     wrapper.innerHTML = html.trim();
