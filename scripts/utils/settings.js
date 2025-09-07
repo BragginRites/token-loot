@@ -98,6 +98,16 @@ export function registerReliabilitySettings() {
 		type: Number,
 		default: 50
 	});
+
+	// GM chat summary toggle (off by default)
+	game.settings.register(MODULE_ID, 'enableGMChatSummary', {
+		scope: 'world',
+		config: true,
+		name: 'GM Chat Summary',
+		hint: 'Post a GM-only chat summary after loot is granted.',
+		type: Boolean,
+		default: false
+	});
 }
 
 

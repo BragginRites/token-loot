@@ -135,6 +135,10 @@ async function grantItems(actor, rows, grantLog) {
 }
 
 async function postGMChatLog(actor, group, grantLog) {
+    try {
+        const enabled = !!game.settings.get(MODULE_ID, 'enableGMChatSummary');
+        if (!enabled) return;
+    } catch {}
     const lines = [];
     lines.push(`<strong>${actor.name}</strong> received loot from group <em>${group.name}</em>:`);
     let hasLoot = false;
