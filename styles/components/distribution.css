@@ -110,6 +110,37 @@
     box-shadow: 0 2px 4px rgba(74, 140, 42, 0.3);
 }
 
+/* Option Chips (Auto-equip, Duplicates, Force Qty) */
+#tl-group-manager .tl-option-chips {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+#tl-group-manager .tl-chip {
+    padding: 6px 12px;
+    border: 1px solid #2a2f3a;
+    background: #0a0e14;
+    color: #9ca3af;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+#tl-group-manager .tl-chip:hover {
+    background: #1a2332;
+    color: #d6dbea;
+}
+
+#tl-group-manager .tl-chip.tl-active {
+    background: #4a8c2a;
+    color: #ffffff;
+    border-color: #4a8c2a;
+    box-shadow: 0 2px 4px rgba(74, 140, 42, 0.3);
+}
+
 /* Allow Duplicates - Clean Toggle */
 #tl-group-manager .tl-allow-dup {
     display: flex;

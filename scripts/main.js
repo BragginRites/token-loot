@@ -1,7 +1,7 @@
 'use strict';
 
-import { MODULE_ID, defaultSettings, registerReliabilitySettings } from './utils/settings.js';
-import { openGroupManager } from './ui/groupManager/index.js';
+import { MODULE_ID, registerCoreSettings, registerReliabilitySettings } from './utils/settings.js';
+import { openGroupManager } from './ui/groupManager/GroupManagerController.js';
 import { enqueueActorTask, withRetries } from './domain/queue.js';
 import { setupCreateTokenHook } from './hooks/createToken.js';
 import { setupPreCreateTokenHook } from './hooks/preCreateToken.js';
@@ -46,17 +46,7 @@ import { setupBG3Compat } from './compat/bg3/index.js';
 Hooks.once('init', () => {
 	console.log(`${MODULE_ID} | Initializing`);
 
-	game.settings.register(MODULE_ID, 'settings', {
-		name: 'Token Loot Settings',
-		hint: 'Configure groups and loot.',
-		scope: 'world',
-		config: false,
-		type: Object,
-		default: defaultSettings(),
-		onChange: value => {
-			console.debug(`${MODULE_ID} | Settings updated`, value);
-		}
-	});
+	registerCoreSettings();
 
 	game.settings.registerMenu(MODULE_ID, 'groupManager', {
 		name: 'Loot Group Manager',
@@ -73,25 +63,9 @@ Hooks.once('init', () => {
 		}
 	});
 
-	game.settings.register(MODULE_ID, 'enablePrompt', {
-		scope: 'world',
-		config: true,
-		name: 'GM Prompt on Loot',
-		hint: 'Ask GM how to apply equip/attune on createToken.',
-		type: Boolean,
-		default: false
-	});
-
 	// Reliability and timing controls
 	registerReliabilitySettings();
 
-	// Client UI preferences
-	game.settings.register(MODULE_ID, 'groupManagerSize', {
-		scope: 'client',
-		config: false,
-		type: Object,
-		default: { width: 860, height: 620 }
-	});
 });
 
 Hooks.once('ready', async () => {

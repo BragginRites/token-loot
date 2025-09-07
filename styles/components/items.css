@@ -61,6 +61,8 @@
     text-overflow: ellipsis;
 }
 
+/* Invalid items are now filtered out instead of displayed */
+
 #tl-group-manager .tl-item-chance,
 #tl-group-manager .tl-item-qtymin,
 #tl-group-manager .tl-item-qtymax {

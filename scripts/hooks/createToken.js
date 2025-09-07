@@ -13,6 +13,12 @@ export function setupCreateTokenHook() {
             const actor = tokenDocument?.actor;
             if (!actor) return;
 
+            // Guard: avoid double-award if any other listener or race triggers
+            try { 
+                const awarded = await tokenDocument.getFlag(MODULE_ID, 'awarded');
+                if (awarded) return;
+            } catch {}
+
             // If loot was applied earlier in preCreate (for unlinked), only post the chat here
             try {
                 const preApplied = tokenDocument.getFlag(MODULE_ID, 'preApplied');
@@ -40,6 +46,7 @@ export function setupCreateTokenHook() {
                 const grantLog = { currency: {}, items: [] };
 
                 markGrantsStart(tokenDocument.id);
+                try { await tokenDocument.setFlag(MODULE_ID, 'awarded', true); } catch {}
                 try { await tokenDocument.setFlag(MODULE_ID, 'preApplied', true); } catch {}
                 for (const group of groups) {
                     await withRetries(() => awardActor({ actor, group, grantLog, grantItems }));

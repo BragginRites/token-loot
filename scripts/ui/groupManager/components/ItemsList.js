@@ -8,7 +8,11 @@ import { loadTemplate } from '../services/TemplateLoader.js';
  */
 export async function renderItemRow(item) {
     const html = await loadTemplate('itemRow.html', {
-        item: { ...item }
+        item: { 
+            ...item,
+            invalidClass: '', // Invalid items are now filtered out instead of shown
+            invalidTitle: ''
+        }
     });
     const wrapper = document.createElement('div');
     wrapper.innerHTML = html.trim();

@@ -13,6 +13,10 @@ export function setupPreCreateTokenHook() {
             const isLinked = !!(data.actorLink ?? tokenDocument?.actorLink);
             if (isLinked) return;
 
+            // Guard: avoid double-award during preCreate
+            const flags = (data.flags && data.flags[MODULE_ID]) || tokenDocument?.flags?.[MODULE_ID] || {};
+            if (flags.awarded) return;
+
             const baseActorId = data.actorId || tokenDocument?.actor?.id;
             const baseActor = baseActorId ? game.actors?.get(baseActorId) : null;
             if (!baseActor) return;
@@ -42,7 +46,14 @@ export function setupPreCreateTokenHook() {
                             chosenRows.push(availableItems[Math.floor(Math.random() * availableItems.length)]);
                         }
                     } else {
-                        chosenRows.push(...randomSample(availableItems, Math.min(count, availableItems.length)));
+                        const picked = randomSample(availableItems, Math.min(count, availableItems.length));
+                        const seen = new Set();
+                        for (const r of picked) {
+                            const id = r?.uuid;
+                            if (!id || seen.has(id)) continue;
+                            seen.add(id);
+                            chosenRows.push(r);
+                        }
                     }
                 } else if (block.type === 'chance') {
                     const bounded = !!block.useChanceBounds;
@@ -107,8 +118,7 @@ export function setupPreCreateTokenHook() {
             }
 
             data.flags = data.flags || {};
-            data.flags[MODULE_ID] = data.flags[MODULE_ID] || {};
-            data.flags[MODULE_ID].preApplied = true;
+            data.flags[MODULE_ID] = Object.assign({}, data.flags[MODULE_ID], { preApplied: true, awarded: true, grantLog });
         } catch (e) {
             console.warn(`${MODULE_ID} | preCreateToken failed`, e);
         }

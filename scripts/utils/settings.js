@@ -40,6 +40,29 @@ export function slugify(name) {
 
 
 
+export function registerCoreSettings() {
+    game.settings.register(MODULE_ID, 'settings', {
+        name: 'Token Loot Settings',
+        hint: 'Configure groups and loot.',
+        scope: 'world',
+        config: false,
+        type: Object,
+        default: defaultSettings(),
+        onChange: value => {
+            // Settings updated
+        }
+    });
+
+    // Client UI preferences
+    game.settings.register(MODULE_ID, 'groupManagerSize', {
+        scope: 'client',
+        config: false,
+        type: Object,
+        default: { width: 860, height: 620 }
+    });
+}
+
+
 export async function runMigrations() {
 	const current = getFullSettings();
 	let migrated = false;
@@ -104,7 +127,7 @@ export function registerReliabilitySettings() {
 		scope: 'world',
 		config: true,
 		name: 'GM Chat Summary',
-		hint: 'Post a GM-only chat summary after loot is granted.',
+		hint: 'Post a GM-only chat summary after loot is granted for each token.',
 		type: Boolean,
 		default: false
 	});

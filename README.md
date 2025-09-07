@@ -20,7 +20,7 @@ Check out my other module(s):
 - **Automatic loot on token creation**
 - **Per-item quantity ranges** with min/max values
 - **Independent chance rolls per item** (new default)
-- **Optional bounded chance mode** via "Force Qty" with Min/Max rolls
+- **Optional bounded chance mode** via "Number of Items" with Min/Max rolls
 - **Duplicate control** per block (allow or prevent duplicates)
 - **Drag-and-drop group manager** for actors and items
 - **Batch import items** from folders
@@ -42,9 +42,9 @@ Each group contains one or more distribution blocks. A block can be configured i
 
 1. **All**: Grant every item in the block once.
 2. **Pick N**: Randomly select N items from the block. The "Allow duplicates" toggle lets the same item be picked multiple times.
-3. **Chances**:
+3. **Chances** (default):
    - By default, the module rolls each item's chance once and grants any items that succeed.
-   - Enable **Force Qty** to roll a random target between "Min Rolls" and "Max Rolls" and run independent chances until the target is met. "Allow duplicates" controls whether the same item can be granted more than once in this bounded mode.
+   - Enable **Number of Items** to roll a random target between "Min Rolls" and "Max Rolls" and run independent chances until the target is met. "Allow duplicates" controls whether the same item can be granted more than once in this bounded mode.
 
 ### How it works
 
@@ -62,7 +62,7 @@ Each group contains one or more distribution blocks. A block can be configured i
   - For each item, we roll its chance once. If it succeeds, you get that item (at most one copy).
   - Each granted item rolls a quantity independently between `Qty Min` and `Qty Max`.
 
-- **Chances with Force Qty**
+- **Chances with Number of Items**
   - First, we decide how many items to try for using the "Min Rolls"/"Max Rolls" range.
   - Then we roll item chances until that many items succeed.
   - If "Allow duplicates" is OFF, the same item won’t appear twice; you might end up with fewer than the target if you do not have a large enough pool of items and not enough items succeed.

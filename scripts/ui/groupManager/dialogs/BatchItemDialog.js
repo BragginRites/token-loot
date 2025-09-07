@@ -16,7 +16,7 @@ export async function showBatchSettingsDialog(folderName, itemCount) {
     return new Promise(resolve => {
         const cleanup = (result) => { try { overlay.remove(); } catch {} resolve(result); };
         overlay.querySelector('.tl-apply')?.addEventListener('click', () => {
-            const chance = Number(overlay.querySelector('.tl-batch-chance')?.value) || 100;
+            const chance = Number(overlay.querySelector('.tl-batch-chance')?.value) || 10;
             const qtyMin = Number(overlay.querySelector('.tl-batch-qmin')?.value) || 1;
             const qtyMax = Number(overlay.querySelector('.tl-batch-qmax')?.value) || 1;
             const includeSubfolders = !!overlay.querySelector('.tl-include-subfolders')?.checked;

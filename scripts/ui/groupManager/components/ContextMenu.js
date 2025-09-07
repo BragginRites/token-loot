@@ -24,7 +24,7 @@ export function openBlockContextMenu(x, y, { onCopy, onPaste }) {
 	menu.style.position = 'fixed';
 	menu.style.left = x + 'px';
 	menu.style.top = y + 'px';
-	menu.style.zIndex = 1000000;
+	menu.style.zIndex = 20;
 	menu.innerHTML = `
 		<div class="tl-context-item" data-action="copy">Copy Block</div>
 		<div class="tl-context-item" data-action="paste">Paste Block</div>

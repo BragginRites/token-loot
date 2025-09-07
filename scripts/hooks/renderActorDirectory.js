@@ -1,6 +1,6 @@
 'use strict';
 
-import { openGroupManager } from '../ui/groupManager/index.js';
+import { openGroupManager } from '../ui/groupManager/GroupManagerController.js';
 import { MODULE_ID } from '../utils/settings.js';
 
 export function setupRenderActorDirectoryHook() {

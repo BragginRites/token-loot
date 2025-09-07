@@ -11,15 +11,17 @@ export async function renderDistributionBlock(block) {
     const html = await loadTemplate('distributionBlock.html', {
         block: {
             ...block,
-            allActive: (block.type || 'all') === 'all' ? 'tl-active' : '',
-            pickActive: (block.type || 'all') === 'pick' ? 'tl-active' : '',
-            chanceActive: (block.type || 'all') === 'chance' ? 'tl-active' : '',
+            allActive: (block.type || 'chance') === 'all' ? 'tl-active' : '',
+            pickActive: (block.type || 'chance') === 'pick' ? 'tl-active' : '',
+            chanceActive: (block.type || 'chance') === 'chance' ? 'tl-active' : '',
             pickDisplay: (block.type === 'pick') ? '' : 'style="display:none"',
             chanceDisplay: (block.type === 'chance') ? '' : 'style="display:none"',
+            chanceBoundsDisplay: (block.useChanceBounds) ? '' : 'style="display:none"',
             useChanceBoundsChecked: block.useChanceBounds ? 'checked' : '',
             boundsInputsDisabled: block.useChanceBounds ? '' : 'disabled',
-            allowDuplicatesChecked: block.allowDuplicates ? 'checked' : '',
-            autoEquipChecked: block.autoEquip ? 'checked' : ''
+            allowDupActive: block.allowDuplicates ? 'tl-active' : '',
+            autoEquipActive: block.autoEquip ? 'tl-active' : '',
+            forceQtyActive: block.useChanceBounds ? 'tl-active' : ''
         }
     });
     const wrapper = document.createElement('div');
