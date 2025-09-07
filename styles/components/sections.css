@@ -1,0 +1,103 @@
+/* ========================================
+   SECTION CONTAINERS & HEADERS
+   ======================================== */
+
+/* Section Containers - Modern Style with Child Indentation */
+#tl-group-manager .tl-section {
+    border: 1px solid #2a2f3a;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #121723 0%, #0f1419 100%);
+    margin: 16px 2.5% 16px 2.5%; /* 5% total margin (2.5% each side) to make sections 5% smaller */
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    width: calc(95% - 0px); /* 5% smaller than parent */
+}
+
+#tl-group-manager .tl-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #1a2332 0%, #151b26 100%);
+    border-bottom: 1px solid #2a2f3a;
+    font-weight: 600;
+    font-size: 14px;
+    color: #e8ecf1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#tl-group-manager .tl-section-header:hover {
+    background: linear-gradient(135deg, #1f2937 0%, #1a2332 100%);
+}
+
+/* Collapse Arrow */
+#tl-group-manager .tl-collapse-arrow {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+#tl-group-manager .tl-section.collapsed .tl-collapse-arrow {
+    transform: rotate(-90deg);
+}
+
+/* Section Title and Actions */
+#tl-group-manager .tl-section-title {
+    flex: 1;
+}
+
+#tl-group-manager .tl-section-actions {
+    display: flex;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+#tl-group-manager .tl-section-content {
+    padding: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    /* Allow multiple blocks to fully expand; keep large cap for smooth collapse */
+    max-height: 5000px;
+    opacity: 1;
+}
+
+#tl-group-manager .tl-section.collapsed .tl-section-content {
+    max-height: 0;
+    opacity: 0;
+}
+
+#tl-group-manager .tl-section.collapsed .tl-section-header {
+    border-bottom: none;
+}
+
+/* Legacy separator for backwards compatibility */
+#tl-group-manager .tl-sep {
+    margin: 24px 0 16px;
+    font-weight: 700;
+    font-size: 16px;
+    color: #e8ecf1;
+    border-top: 2px solid #2a2f3a;
+    padding-top: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#tl-group-manager .tl-sep:first-child {
+    margin-top: 0;
+}
+
+#tl-group-manager .tl-empty {
+    opacity: .7;
+    padding: 12px;
+    border: 1px dashed #2a2f3a;
+    border-radius: 8px;
+    text-align: center;
+}

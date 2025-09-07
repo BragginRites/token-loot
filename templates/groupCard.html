@@ -1,0 +1,78 @@
+<div class="tl-card" data-gid="{{group.id}}">
+	<div class="tl-card-hdr">
+		<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
+		<input class="tl-title" data-gid="{{group.id}}" value="{{group.name}}" placeholder="Group Title" />
+		<div class="tl-card-actions">
+			<button class="tl-btn tl-duplicate" title="Duplicate Group"><i class="fas fa-copy"></i></button>
+			<button class="tl-btn tl-danger tl-delete" title="Delete Group"><i class="fas fa-trash"></i></button>
+		</div>
+	</div>
+	<div class="tl-card-body">
+		<div class="tl-section" data-section="actors">
+			<div class="tl-section-header">
+				<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
+				<div class="tl-section-title">Actors</div>
+				<div class="tl-section-actions">
+					<button class="tl-btn tl-btn-sm tl-danger tl-clear-actors" title="Clear All Actors">Clear All</button>
+				</div>
+			</div>
+			<div class="tl-section-content">
+				<div class="tl-drop tl-actors" data-gid="{{group.id}}">
+					<!-- actor chips injected here -->
+				</div>
+			</div>
+		</div>
+		
+		<div class="tl-section" data-section="currency">
+			<div class="tl-section-header">
+				<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
+				<div class="tl-section-title">Currency</div>
+				<div class="tl-section-actions">
+					<span class="tl-currency-hint">Examples: 0, 1d4, 10-50, 2d6*10</span>
+				</div>
+			</div>
+			<div class="tl-section-content">
+				<div class="tl-currency">
+					<div class="tl-currency-compact">
+						<div class="tl-currency-field">
+							<label>PP</label>
+							<input class="tl-currency-input tl-pp" type="text" value="{{group.currency.pp}}" />
+						</div>
+						<div class="tl-currency-field">
+							<label>GP</label>
+							<input class="tl-currency-input tl-gp" type="text" value="{{group.currency.gp}}" />
+						</div>
+						<div class="tl-currency-field">
+							<label>EP</label>
+							<input class="tl-currency-input tl-ep" type="text" value="{{group.currency.ep}}" />
+						</div>
+						<div class="tl-currency-field">
+							<label>SP</label>
+							<input class="tl-currency-input tl-sp" type="text" value="{{group.currency.sp}}" />
+						</div>
+						<div class="tl-currency-field">
+							<label>CP</label>
+							<input class="tl-currency-input tl-cp" type="text" value="{{group.currency.cp}}" />
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<div class="tl-section" data-section="blocks">
+			<div class="tl-section-header">
+				<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
+				<div class="tl-section-title">Distribution Blocks</div>
+				<div class="tl-section-actions">
+					<button class="tl-btn tl-btn-sm tl-add-block">Add Block</button>
+				</div>
+			</div>
+			<div class="tl-section-content">
+				<div class="tl-distribution-blocks" data-gid="{{group.id}}">
+					<!-- blocks injected here -->
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+

@@ -1,0 +1,58 @@
+/* ========================================
+   MAIN APPLICATION CONTAINER
+   ======================================== */
+
+/* Group Manager Panel */
+#tl-group-manager {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    pointer-events: none;
+}
+
+#tl-group-manager * {
+    box-sizing: border-box;
+}
+
+/* Main App Panel - Modern Design */
+#tl-group-manager .tl-panel {
+    pointer-events: auto;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #0a0e14 0%, #0f1218 100%);
+    color: #e8ecf1;
+    border: 1px solid #2a2f3a;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    min-width: 900px;
+    min-height: 700px;
+    max-width: 95vw;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    backdrop-filter: blur(8px);
+}
+
+/* Custom Resize Handle */
+#tl-group-manager .tl-resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    cursor: se-resize;
+    background: linear-gradient(135deg, transparent 0%, transparent 40%, #4a5a6a 40%, #4a5a6a 50%, transparent 50%, transparent 60%, #4a5a6a 60%, #4a5a6a 70%, transparent 70%);
+    background-size: 6px 6px;
+    border-bottom-right-radius: 20px;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+}
+
+#tl-group-manager .tl-resize-handle:hover {
+    opacity: 1;
+    background: linear-gradient(135deg, transparent 0%, transparent 40%, #6a7a8a 40%, #6a7a8a 50%, transparent 50%, transparent 60%, #6a7a8a 60%, #6a7a8a 70%, transparent 70%);
+}

@@ -1,0 +1,127 @@
+/* ========================================
+   ITEM LISTS & ROWS
+   ======================================== */
+
+/* Item Headers and Rows - Grid Layout */
+#tl-group-manager .tl-item-header {
+    display: grid;
+    grid-template-columns: auto 1fr 64px 64px 64px 32px;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 12px 6px 12px;
+    font-size: 11px;
+    opacity: .7;
+    width: 100%;
+    border-bottom: 1px solid #2a2f3a;
+    background: #0a0e14;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+#tl-group-manager .tl-item-row {
+    display: grid;
+    grid-template-columns: auto 1fr 64px 64px 64px 32px;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    width: 100%;
+}
+
+/* Right-align controls */
+#tl-group-manager .tl-item-header .tl-item-chance,
+#tl-group-manager .tl-item-header .tl-item-qtymin,
+#tl-group-manager .tl-item-header .tl-item-qtymax,
+#tl-group-manager .tl-item-row .tl-item-chance,
+#tl-group-manager .tl-item-row .tl-item-qtymin,
+#tl-group-manager .tl-item-row .tl-item-qtymax,
+#tl-group-manager .tl-item-row .tl-item-delete {
+    justify-self: end;
+}
+
+/* Hide Chance column for non-chance blocks (keep grid layout intact) */
+#tl-group-manager .tl-distribution-block[data-type="pick"] .tl-item-header .tl-item-chance,
+#tl-group-manager .tl-distribution-block[data-type="all"] .tl-item-header .tl-item-chance,
+#tl-group-manager .tl-distribution-block[data-type="pick"] .tl-item-row .tl-item-chance,
+#tl-group-manager .tl-distribution-block[data-type="all"] .tl-item-row .tl-item-chance {
+    visibility: hidden;
+}
+
+/* Item Styling */
+#tl-group-manager .tl-item-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+#tl-group-manager .tl-item-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#tl-group-manager .tl-item-chance,
+#tl-group-manager .tl-item-qtymin,
+#tl-group-manager .tl-item-qtymax {
+    width: 64px;
+    min-width: 64px;
+    max-width: 64px;
+    padding: 6px 8px;
+    border: 1px solid #2a2f3a;
+    border-radius: 8px;
+    background: #121723;
+    color: #d6dbea;
+    text-align: right;
+}
+
+/* Item Lists */
+#tl-group-manager .tl-items-list {
+    display: block;
+    /* Match height behavior across all blocks */
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+#tl-group-manager .tl-items-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#tl-group-manager .tl-items-list::-webkit-scrollbar-track {
+    background: #0a0e14;
+    border-radius: 4px;
+}
+
+#tl-group-manager .tl-items-list::-webkit-scrollbar-thumb {
+    background: #2a2f3a;
+    border-radius: 4px;
+}
+
+#tl-group-manager .tl-items-list::-webkit-scrollbar-thumb:hover {
+    background: #3a3f4a;
+}
+
+#tl-group-manager .tl-items {
+    display: block;
+    /* Match height behavior across all blocks */
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+#tl-group-manager .tl-items::-webkit-scrollbar {
+    width: 8px;
+}
+
+#tl-group-manager .tl-items::-webkit-scrollbar-track {
+    background: #0a0e14;
+    border-radius: 4px;
+}
+
+#tl-group-manager .tl-items::-webkit-scrollbar-thumb {
+    background: #2a2f3a;
+    border-radius: 4px;
+}
+
+#tl-group-manager .tl-items::-webkit-scrollbar-thumb:hover {
+    background: #3a3f4a;
+}

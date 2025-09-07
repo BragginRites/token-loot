@@ -1,0 +1,84 @@
+/* ========================================
+   DIALOGS & MODALS
+   ======================================== */
+
+/* Context Menu */
+.tl-context-menu {
+    background: #0f1218;
+    border: 1px solid #2a2f3a;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+    min-width: 160px;
+    color: #e8ecf1;
+}
+
+.tl-context-item {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.tl-context-item:hover {
+    background: #1a1f2c;
+}
+
+/* Confirm Dialogs (delete/remove, batch add) */
+.tl-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tl-confirm-dialog {
+    background: #0f1218;
+    color: #e8ecf1;
+    border: 1px solid #2a2f3a;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .8);
+    min-width: 320px;
+    max-width: 480px;
+}
+
+.tl-confirm-header {
+    padding: 12px 16px;
+    font-weight: 800;
+    font-size: 16px;
+    border-bottom: 1px solid #2a2f3a;
+    background: linear-gradient(180deg, #141824, #10141e);
+}
+
+.tl-confirm-body {
+    padding: 16px;
+    line-height: 1.4;
+}
+
+.tl-confirm-actions {
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    border-top: 1px solid #2a2f3a;
+}
+
+.tl-confirm-btn {
+    appearance: none;
+    border: 1px solid #2a2f3a;
+    background: #161b28;
+    color: #efece6;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.tl-confirm-btn:hover {
+    filter: brightness(1.06);
+}
+
+.tl-confirm-btn.tl-danger {
+    background: #2a1717;
+    border-color: #3a2626;
+}

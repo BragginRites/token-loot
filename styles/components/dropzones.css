@@ -1,0 +1,46 @@
+/* ========================================
+   DROP ZONES & DRAG INTERACTIONS
+   ======================================== */
+
+/* Drop Zones - Modern Style */
+#tl-group-manager .tl-drop {
+    padding: 20px;
+    border: 2px dashed #3a4a5a;
+    border-radius: 10px;
+    min-height: 80px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    transition: all 0.2s ease;
+    background: rgba(10, 14, 20, 0.4);
+    margin: 0;
+}
+
+/* Only show green feedback during drag operations */
+#tl-group-manager .tl-drop.dragover {
+    border-color: #4a8c2a;
+    background: rgba(74, 140, 42, 0.1);
+    box-shadow: 0 0 0 2px rgba(74, 140, 42, 0.2);
+}
+
+#tl-group-manager .tl-drop.drag {
+    outline: 2px solid #4b81ff;
+}
+
+/* Hint styling - make empty items areas same size as actors area */
+#tl-group-manager .tl-hint {
+    padding: 20px;
+    border: 2px dashed #3a4a5a;
+    border-radius: 10px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 14, 20, 0.4);
+    color: #7a8590;
+    font-style: italic;
+    text-align: center;
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+}

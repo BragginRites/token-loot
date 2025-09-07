@@ -1,0 +1,38 @@
+<div class="tl-distribution-block" data-block-id="{{block.id}}" data-type="{{block.type}}">
+	<div class="tl-block-hdr">
+		<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
+		<input class="tl-block-name" value="{{block.name}}" placeholder="Block Name" />
+		<div class="tl-distribution-buttons">
+			<button class="tl-btn tl-distribution-btn {{block.allActive}}" data-type="all">All</button>
+			<button class="tl-btn tl-distribution-btn {{block.pickActive}}" data-type="pick">Pick N</button>
+			<button class="tl-btn tl-distribution-btn {{block.chanceActive}}" data-type="chance">Chances</button>
+		</div>
+		<div class="tl-block-io">
+			<button class="tl-btn tl-btn-sm tl-block-export" title="Export Block JSON">Export</button>
+			<button class="tl-btn tl-btn-sm tl-block-import" title="Import Block JSON">Import</button>
+		</div>
+		<label class="tl-auto-equip"><input type="checkbox" class="tl-auto-equip-input" {{block.autoEquipChecked}} /> Auto-equip</label>
+		<label class="tl-allow-dup"><input type="checkbox" class="tl-allow-dup-input" {{block.allowDuplicatesChecked}} /> Allow duplicates</label>
+		<button class="tl-btn tl-danger tl-block-delete" title="Remove Block"><i class="fas fa-trash"></i></button>
+	</div>
+	<div class="tl-block-body">
+		<div class="tl-distribution-config">
+			<div class="tl-config-pick" {{block.pickDisplay}}>
+				<label>Pick</label>
+				<input class="tl-num tl-distribution-count" type="number" min="1" value="{{block.count}}" />
+
+			</div>
+			<div class="tl-config-chance" {{block.chanceDisplay}}>
+				<label class="tl-use-bounds"><input type="checkbox" class="tl-use-bounds-input" {{block.useChanceBoundsChecked}} /> Force Qty </label>
+				<label>Min Rolls</label>
+				<input class="tl-num tl-ch-min" type="number" min="0" value="{{block.chanceMin}}" {{block.boundsInputsDisabled}} title="Minimum number of items to roll for" />
+				<label>Max Rolls</label>
+				<input class="tl-num tl-ch-max" type="number" min="0" value="{{block.chanceMax}}" {{block.boundsInputsDisabled}} title="Maximum number of items to roll for" />
+			</div>
+		</div>
+		<div class="tl-9op tl-items tl-items-list" data-block-id="{{block.id}}">
+			<!-- item rows injected here -->
+		</div>
+	</div>
+</div>
+

@@ -1,0 +1,67 @@
+/* ========================================
+   ACTOR CHIPS
+   ======================================== */
+
+/* Actor Chips - Modern Style */
+#tl-group-manager .tl-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid #3a4a5a;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #0f1419 0%, #0a0e14 100%);
+    color: #e8ecf1;
+    font-size: 13px;
+    font-weight: 500;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+#tl-group-manager .tl-chip:hover {
+    background: linear-gradient(135deg, #151b26 0%, #121723 100%);
+    border-color: #4a5a6a;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+#tl-group-manager .tl-chip-delete {
+    display: none;
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3a2626;
+    border: 1px solid #4a2f2f;
+    color: #ff6b6b;
+    cursor: pointer;
+    font-size: 11px;
+    z-index: 1;
+    transition: all 0.2s ease;
+    appearance: none;
+    padding: 0;
+    line-height: 1;
+}
+
+#tl-group-manager .tl-chip:hover .tl-chip-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#tl-group-manager .tl-chip-delete:hover {
+    background: #4a2f2f;
+    border-color: #5a3a3a;
+    transform: scale(1.1);
+}
+
+#tl-group-manager .tl-chip-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid #2a2f3a;
+}
