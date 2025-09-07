@@ -20,6 +20,22 @@ Coffee helps me stay up to 2am to write these modules. Thank you for the lack of
 - **Resizable/draggable** manager window with auto-save
 - **GM-only chat summaries** of granted loot
 
+## How to use it
+
+1. Enable the module in your world.
+2. Open the Loot Group Manager via the actor tab button at the bottom of the sidebar or Module Settings → Token Loot.
+3. Click "Add Loot Group" to create a group.
+4. Drag actors into the group, then drag items into distribution blocks.
+5. Configure chances, quantities, and modes as desired.
+6. Place a token that belongs to the group onto the canvas to grant loot.
+
+## Group Manager Overview
+
+- Create a group and drag actors (or folders of actors) from the sidebar or compendiums into the actor block.
+- Add distribution blocks and drag items (or folders of items) from the sidebar or compendiums into each distribution block.
+- Configure per-item chance and quantity, per-block mode, duplicates, and the optional Force Qty bounds.
+- Shift+Click delete buttons to skip confirmation dialogs.
+
 ## Distribution Modes
 
 Each group contains one or more distribution blocks. A block can be configured in one of three modes:
@@ -30,16 +46,28 @@ Each group contains one or more distribution blocks. A block can be configured i
    - By default, the module rolls each item's chance once and grants any items that succeed.
    - Enable **Force Qty** to roll a random target between "Min Rolls" and "Max Rolls" and run independent chances until the target is met. "Allow duplicates" controls whether the same item can be granted more than once in this bounded mode.
 
-### Quantities per Item
+### How it works
 
-Each item row has `Qty Min` and `Qty Max`. When an item is granted, a random integer between these values is used as the quantity.
+- **All**
+  - The token gets every item in the block once.
+  - Each granted item rolls a quantity independently between `Qty Min` and `Qty Max`.
 
-## Group Manager Overview
+- **Pick N**
+  - The module randomly picks N number of items from the block.
+  - If "Allow duplicates" is OFF, it won’t pick the same item twice. If there aren’t enough different items, you get what’s available.
+  - If "Allow duplicates" is ON, the same item can be picked more than once.
+  - Each picked item rolls a quantity independently between `Qty Min` and `Qty Max`.
 
-- Create a group and drag actors from the sidebar into it.
-- Add distribution blocks and drag items (or item folders) into each block.
-- Configure per-item chance and quantity, per-block mode, duplicates, and the optional Force Qty bounds.
-- Shift+Click delete buttons to skip confirmation dialogs.
+- **Chances (default)**
+  - For each item, we roll its chance once. If it succeeds, you get that item (at most one copy).
+  - Each granted item rolls a quantity independently between `Qty Min` and `Qty Max`.
+
+- **Chances with Force Qty**
+  - First, we decide how many items to try for using the "Min Rolls"/"Max Rolls" range.
+  - Then we roll item chances until that many items succeed.
+  - If "Allow duplicates" is OFF, the same item won’t appear twice; you might end up with fewer than the target if you do not have a large enough pool of items and not enough items succeed.
+  - If "Allow duplicates" is ON, the same item can appear more than once and will continue to roll chances until the target is met.
+  - Each granted item rolls a quantity independently between `Qty Min` and `Qty Max`.
 
 ## Requirements and Compatibility
 
@@ -51,21 +79,13 @@ Each item row has `Qty Min` and `Qty Max`. When an item is granted, a random int
 
 Currency distribution is currently not supported across systems other than dnd5e. The UI may expose currency fields; treat them as experimental for now.
 
-## Setup
-
-1. Enable the module in your world.
-2. Open the Loot Group Manager via Module Settings → Token Loot.
-3. Click "Add Loot Group" to create a group.
-4. Drag actors into the group, then drag items into distribution blocks.
-5. Configure chances, quantities, and modes as desired.
-
 ## Settings
 
-- **Apply Loot in preCreate for Unlinked Tokens**: When enabled, unlinked tokens receive loot during preCreate, which reduces race conditions. In this mode, only the first matching group is applied.
+- **Apply Loot in preCreate for Unlinked Tokens**: When enabled, unlinked tokens receive loot during preCreate, which reduces race conditions.
 - **Loot Award Stagger (ms)** and **Per-Item Award Stagger (ms)**: Optional delays to reduce contention during item creation.
 
 ## Notes
 
 - On token creation, all matching groups are applied. In preCreate mode (unlinked tokens option), only the first matching group is applied.
 - A GM-only chat summary is posted after loot is granted (when possible).
-- Granted items are flagged with `flags.token-loot.granted`.
+- Granted items are flagged with `flags.token-loot.granted` so we can identify them in the future for deletion or other purposes.
