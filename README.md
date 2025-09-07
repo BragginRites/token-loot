@@ -8,6 +8,13 @@ Coffee helps me stay up to 2am to write these modules. Thank you for the lack of
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/bragginrites)
 
+## Other Modules
+
+Check out my other module(s):
+- [BG3 Inspired HUD](https://github.com/BragginRites/bg3-inspired-hotbar)
+- [Surge Dice - A Narrative Dice Pool](https://github.com/BragginRites/surge-dice)
+- [Inspect Statblock](https://github.com/BragginRites/inspect-statblock)
+
 ## Features
 
 - **Automatic loot on token creation**
