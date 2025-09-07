@@ -29,13 +29,6 @@ Coffee helps me stay up to 2am to write these modules. Thank you for the lack of
 5. Configure chances, quantities, and modes as desired.
 6. Place a token that belongs to the group onto the canvas to grant loot.
 
-## Group Manager Overview
-
-- Create a group and drag actors (or folders of actors) from the sidebar or compendiums into the actor block.
-- Add distribution blocks and drag items (or folders of items) from the sidebar or compendiums into each distribution block.
-- Configure per-item chance and quantity, per-block mode, duplicates, and the optional Force Qty bounds.
-- Shift+Click delete buttons to skip confirmation dialogs.
-
 ## Distribution Modes
 
 Each group contains one or more distribution blocks. A block can be configured in one of three modes:
