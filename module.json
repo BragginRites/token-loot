@@ -20,10 +20,12 @@
   "languages": [
     { "lang": "en", "name": "English", "path": "lang/en.json" }
   ],
-  "url": "https://example.com",
-  "manifest": "https://example.com/module.json",
-  "download": "https://example.com/module.zip",
+  "persistentStorage": true,
+  "url": "https://github.com/BragginRites/token-loot",
+  "manifest": "https://github.com/BragginRites/token-loot/releases/download/0.0.1/module.json",
+  "download": "https://github.com/BragginRites/token-loot/releases/download/0.0.1/token-loot.zip",
   "license": "MIT",
-  "readme": "README.md"
+  "readme": "README.md",
+  "bugs": "https://github.com/BragginRites/token-loot/issues"
 }
 
