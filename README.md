@@ -1,60 +1,65 @@
 # Token Loot
 
-A powerful and intuitive loot distribution system for Foundry VTT that automatically grants randomized loot to tokens when they're created.
+A loot distribution system for Foundry VTT that automatically grants randomized loot to tokens when they're created on the canvas.
 
-## ✨ Features
+## Features
 
-### 🎲 **Smart Loot Distribution**
-- **Automatic loot generation** when tokens are placed on the scene
-- **Flexible quantity ranges** with min/max item counts
-- **Weighted chance system** for rare and common items
-- **Currency distribution** with dice expressions (e.g., `2d6*10` gold)
-- **Duplicate control** - allow or prevent duplicate items per actor
-
-### 🎯 **Intuitive Group Manager**
-- **Visual drag-and-drop interface** for managing loot groups
-- **Actor assignment** by dragging actors directly into groups  
-- **Item management** by dragging items from compendiums or your world
-- **Distribution blocks** for organizing different loot categories
-- **Real-time preview** of group configurations
-
-### ⚡ **Power User Features**
-- **Shift+Click to skip confirmations** - Hold Shift while deleting to bypass confirmation dialogs
-- **Batch item import** from folders with customizable settings
-- **Resizable and draggable** group manager window
-- **Auto-save** with deferred writing for performance
+- **Automatic loot on token creation**
+- **Per-item quantity ranges** with min/max values
+- **Independent chance rolls per item** (new default)
+- **Optional bounded chance mode** via "Force Qty" with Min/Max rolls
+- **Duplicate control** per block (allow or prevent duplicates)
+- **Drag-and-drop group manager** for actors and items
+- **Batch import items** from folders
+- **Resizable/draggable** manager window with auto-save
 - **GM-only chat summaries** of granted loot
 
-### 🔧 **Advanced Configuration**
-- **Multiple distribution modes**: "All items" or "Chance-based" selection
-- **Item quantity controls** with separate min/max values per item
-- **Equipment automation** - auto-equip and auto-attune options
-- **Currency expressions** supporting complex dice formulas
-- **Actor filtering** with UUID-based targeting
+## Distribution Modes
 
-## 🚀 Quick Start
+Each group contains one or more distribution blocks. A block can be configured in one of three modes:
 
-### Requirements
-- Foundry VTT v13+
-- D&D 5e System v5.1+
+1. **All**: Grant every item in the block once.
+2. **Pick N**: Randomly select N items from the block. The "Allow duplicates" toggle lets the same item be picked multiple times.
+3. **Chances**:
+   - By default, the module rolls each item's chance once and grants any items that succeed.
+   - Enable **Force Qty** to roll a random target between "Min Rolls" and "Max Rolls" and run independent chances until the target is met. "Allow duplicates" controls whether the same item can be granted more than once in this bounded mode.
 
-### Setup
-1. **Enable the module** in your world
-2. **Open the Loot Group Manager** via Module Settings → Token Loot
-3. **Create your first group** by clicking "Add Loot Group"
-4. **Drag actors** from the sidebar into the group's actor area
-5. **Drag items** from compendiums into distribution blocks
-6. **Configure chances and quantities** as desired
+### Quantities per Item
 
-## 💡 Pro Tips
+Each item row has `Qty Min` and `Qty Max`. When an item is granted, a random integer between these values is used as the quantity.
 
-- **Hold Shift** while clicking delete buttons to skip confirmation dialogs
-- **Use dice expressions** in currency fields: `1d4`, `2d6*10`, `10-50`
-- **Drag entire folders** of items for bulk import with batch settings
-- **Create multiple distribution blocks** to organize different item categories
-- **Set different chance percentages** to create rare vs common loot tiers
+## Group Manager Overview
 
-Notes:
-- Only the first group containing the actor is applied.
-- Posts a GM-only chat summary.
+- Create a group and drag actors from the sidebar into it.
+- Add distribution blocks and drag items (or item folders) into each block.
+- Configure per-item chance and quantity, per-block mode, duplicates, and the optional Force Qty bounds.
+- Shift+Click delete buttons to skip confirmation dialogs.
+
+## Requirements and Compatibility
+
+- **Foundry VTT v13+**
+- Works with any game system. There is no dnd5e requirement.
+- System-specific enhancements (e.g., automatic spell scroll creation, certain auto-equip behaviors) are applied when supported by the system, but are not required.
+
+### Currency
+
+Currency distribution is currently not supported across systems. The UI may expose currency fields; treat them as experimental for now.
+
+## Setup
+
+1. Enable the module in your world.
+2. Open the Loot Group Manager via Module Settings → Token Loot.
+3. Click "Add Loot Group" to create a group.
+4. Drag actors into the group, then drag items into distribution blocks.
+5. Configure chances, quantities, and modes as desired.
+
+## Settings
+
+- **Apply Loot in preCreate for Unlinked Tokens**: When enabled, unlinked tokens receive loot during preCreate, which reduces race conditions. In this mode, only the first matching group is applied.
+- **Loot Award Stagger (ms)** and **Per-Item Award Stagger (ms)**: Optional delays to reduce contention during item creation.
+
+## Notes
+
+- On token creation, all matching groups are applied. In preCreate mode (unlinked tokens option), only the first matching group is applied.
+- A GM-only chat summary is posted after loot is granted (when possible).
 - Granted items are flagged with `flags.token-loot.granted`.
