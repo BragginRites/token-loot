@@ -45,33 +45,41 @@ export function setupPreCreateTokenHook() {
                         chosenRows.push(...randomSample(availableItems, Math.min(count, availableItems.length)));
                     }
                 } else if (block.type === 'chance') {
+                    const bounded = !!block.useChanceBounds;
                     const minCount = Math.max(0, Number(block.chanceMin ?? 1));
                     const maxCount = Math.max(minCount, Number(block.chanceMax ?? minCount));
-                    const target = randomIntegerInclusive(minCount, maxCount);
-                    const pool = [...(block.items || [])];
-                    const successes = [];
-                    const allowDup = !!block.allowDuplicates;
-                    let safety = 1000;
-                    while (successes.length < target && safety-- > 0) {
-                        const order = [...pool];
-                        for (let i = order.length - 1; i > 0; i--) {
-                            const j = Math.floor(Math.random() * (i + 1));
-                            [order[i], order[j]] = [order[j], order[i]];
-                        }
-                        for (const row of order) {
+                    if (!bounded) {
+                        for (const row of (block.items || [])) {
                             const p = typeof row.chance === 'number' ? row.chance : 0;
-                            if (Math.random() * 100 < p) {
-                                successes.push(row);
-                                if (!allowDup) {
-                                    const idx = pool.indexOf(row);
-                                    if (idx >= 0) pool.splice(idx, 1);
-                                }
-                                if (successes.length >= target) break;
-                            }
+                            if (Math.random() * 100 < p) chosenRows.push(row);
                         }
-                        if (!allowDup && pool.length === 0) break;
+                    } else {
+                        const pool = [...(block.items || [])];
+                        const successes = [];
+                        const allowDup = !!block.allowDuplicates;
+                        const target = randomIntegerInclusive(minCount, maxCount);
+                        let safety = 1000;
+                        while (successes.length < target && safety-- > 0) {
+                            const order = [...pool];
+                            for (let i = order.length - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                [order[i], order[j]] = [order[j], order[i]];
+                            }
+                            for (const row of order) {
+                                const p = typeof row.chance === 'number' ? row.chance : 0;
+                                if (Math.random() * 100 < p) {
+                                    successes.push(row);
+                                    if (!allowDup) {
+                                        const idx = pool.indexOf(row);
+                                        if (idx >= 0) pool.splice(idx, 1);
+                                    }
+                                    if (successes.length >= target) break;
+                                }
+                            }
+                            if (!allowDup && pool.length === 0) break;
+                        }
+                        chosenRows.push(...successes);
                     }
-                    chosenRows.push(...successes);
                 }
             }
 

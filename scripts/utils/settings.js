@@ -56,6 +56,7 @@ export async function runMigrations() {
 					if (b && b.type === 'chance') {
 						if (b.chanceMin == null) b.chanceMin = 1;
 						if (b.chanceMax == null) b.chanceMax = b.chanceMin;
+						if (b.useChanceBounds == null) b.useChanceBounds = false;
 					}
 				}
 				g.distributionBlocks = blocks;
@@ -87,6 +88,15 @@ export function registerReliabilitySettings() {
 		hint: 'Optional delay before awarding loot per token to reduce contention. 0 to disable.',
 		type: Number,
 		default: 0
+	});
+
+	game.settings.register(MODULE_ID, 'awardItemStaggerMs', {
+		scope: 'world',
+		config: true,
+		name: 'Per-Item Award Stagger (ms)',
+		hint: 'Delay between creating individual items on an actor; 0 to disable.',
+		type: Number,
+		default: 50
 	});
 }
 

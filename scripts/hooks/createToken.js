@@ -3,7 +3,7 @@
 import { MODULE_ID } from '../utils/settings.js';
 import { enqueueActorTask, withRetries } from '../domain/queue.js';
 import { awardActor } from '../domain/awardService.js';
-import { findGroupForActor } from '../domain/groupResolver.js';
+import { findGroupForActor, findAllGroupsForActor } from '../domain/groupResolver.js';
 import { markGrantsStart, markGrantsDone } from '../domain/grantTracker.js';
 
 export function setupCreateTokenHook() {
@@ -34,15 +34,18 @@ export function setupCreateTokenHook() {
 
                 const rules = getEffectiveRulesForActor(actor);
                 if (!rules) return;
-                const group = findGroupForActor(rules, actor);
-                if (!group) return;
+                const groups = findAllGroupsForActor(rules, actor);
+                if (!groups?.length) return;
 
                 const grantLog = { currency: {}, items: [] };
 
                 markGrantsStart(tokenDocument.id);
                 try { await tokenDocument.setFlag(MODULE_ID, 'preApplied', true); } catch {}
-                await withRetries(() => awardActor({ actor, group, grantLog, grantItems }));
-                await postGMChatLog(actor, group, grantLog);
+                for (const group of groups) {
+                    await withRetries(() => awardActor({ actor, group, grantLog, grantItems }));
+                }
+                // Post a single combined chat log
+                await postGMChatLog(actor, { name: groups.map(g => g.name).join(', ') }, grantLog);
                 try { await tokenDocument.unsetFlag(MODULE_ID, 'preApplied'); } catch {}
                 Hooks.callAll('token-loot.awarded', tokenDocument);
                 markGrantsDone(tokenDocument.id);
@@ -117,7 +120,18 @@ async function grantItems(actor, rows, grantLog) {
             grantLog.items.push({ name: data.name, qty });
         } catch {}
     }
-    if (toCreate.length) await actor.createEmbeddedDocuments('Item', toCreate);
+    if (toCreate.length) {
+        const perItemDelay = Number(game.settings.get(MODULE_ID, 'awardItemStaggerMs') || 0);
+        if (perItemDelay > 0) {
+            // Create items sequentially with stagger
+            for (const data of toCreate) {
+                await actor.createEmbeddedDocuments('Item', [data]);
+                await new Promise(r => setTimeout(r, perItemDelay));
+            }
+        } else {
+            await actor.createEmbeddedDocuments('Item', toCreate);
+        }
+    }
 }
 
 async function postGMChatLog(actor, group, grantLog) {

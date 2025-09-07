@@ -23,10 +23,11 @@
 
 			</div>
 			<div class="tl-config-chance" {{block.chanceDisplay}}>
+				<label class="tl-use-bounds"><input type="checkbox" class="tl-use-bounds-input" {{block.useChanceBoundsChecked}} /> Force Qty </label>
 				<label>Min Rolls</label>
-				<input class="tl-num tl-ch-min" type="number" min="0" value="{{block.chanceMin}}" title="Minimum number of items to roll for" />
+				<input class="tl-num tl-ch-min" type="number" min="0" value="{{block.chanceMin}}" {{block.boundsInputsDisabled}} title="Minimum number of items to roll for" />
 				<label>Max Rolls</label>
-				<input class="tl-num tl-ch-max" type="number" min="0" value="{{block.chanceMax}}" title="Maximum number of items to roll for" />
+				<input class="tl-num tl-ch-max" type="number" min="0" value="{{block.chanceMax}}" {{block.boundsInputsDisabled}} title="Maximum number of items to roll for" />
 			</div>
 		</div>
 		<div class="tl-9op tl-items tl-items-list" data-block-id="{{block.id}}">

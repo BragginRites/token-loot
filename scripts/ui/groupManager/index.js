@@ -240,6 +240,15 @@ export async function openGroupManager() {
                     block.count = Math.max(1, Number(ev.currentTarget.value || 1));
                     autosaveDeferred();
                 });
+                // Use min/max toggle
+                blockEl.querySelector('.tl-use-bounds-input')?.addEventListener('change', ev => {
+                    block.useChanceBounds = !!ev.currentTarget.checked;
+                    const minEl = blockEl.querySelector('.tl-ch-min');
+                    const maxEl = blockEl.querySelector('.tl-ch-max');
+                    if (minEl) minEl.disabled = !block.useChanceBounds;
+                    if (maxEl) maxEl.disabled = !block.useChanceBounds;
+                    autosaveDeferred();
+                });
                 // Chance min/max
                 blockEl.querySelector('.tl-ch-min')?.addEventListener('change', ev => {
                     block.chanceMin = Math.max(0, Number(ev.currentTarget.value || 0));
@@ -274,19 +283,25 @@ export async function openGroupManager() {
                 });
 
                 // Export block JSON
-                blockEl.querySelector('.tl-block-export')?.addEventListener('click', (e) => {
+                blockEl.querySelector('.tl-block-export')?.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     try {
+                        const items = await Promise.all((block.items || []).map(async r => {
+                            let name = '';
+                            try { const doc = await fromUuid(r.uuid); name = doc?.name || ''; } catch {}
+                            return { uuid: r.uuid, name, chance: r.chance ?? 100, qtyMin: r.qtyMin ?? 1, qtyMax: r.qtyMax ?? 1 };
+                        }));
                         const exportObj = {
                             id: block.id,
                             name: block.name,
                             type: block.type,
                             count: block.count,
+                            useChanceBounds: !!block.useChanceBounds,
                             chanceMin: block.chanceMin,
                             chanceMax: block.chanceMax,
                             allowDuplicates: !!block.allowDuplicates,
                             autoEquip: !!block.autoEquip,
-                            items: (block.items || []).map(r => ({ uuid: r.uuid, chance: r.chance ?? 100, qtyMin: r.qtyMin ?? 1, qtyMax: r.qtyMax ?? 1 }))
+                            items
                         };
                         const safeName = (block.name || 'block').replace(/[^\w\-]+/gu, '_');
                         const filename = `token-loot-block-${safeName}.json`;
@@ -331,6 +346,7 @@ export async function openGroupManager() {
                                 block.name = data.name ?? block.name;
                                 block.type = data.type ?? block.type ?? 'all';
                                 block.count = Number.isFinite(data.count) ? Number(data.count) : block.count;
+                                block.useChanceBounds = !!data.useChanceBounds;
                                 block.chanceMin = Number.isFinite(data.chanceMin) ? Number(data.chanceMin) : block.chanceMin;
                                 block.chanceMax = Number.isFinite(data.chanceMax) ? Number(data.chanceMax) : block.chanceMax;
                                 block.allowDuplicates = !!data.allowDuplicates;

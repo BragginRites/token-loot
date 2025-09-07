@@ -327,8 +327,17 @@ async function grantItems(actor, rows, grantLog) {
 	}
 	console.log(`${MODULE_ID} | Creating ${toCreate.length} items on actor ${actor.name}`);
 	if (toCreate.length) {
-		await actor.createEmbeddedDocuments('Item', toCreate);
-		console.log(`${MODULE_ID} | Successfully created ${toCreate.length} items`);
+		const perItemDelay = Number(game.settings.get(MODULE_ID, 'awardItemStaggerMs') || 0);
+		if (perItemDelay > 0) {
+			for (const data of toCreate) {
+				await actor.createEmbeddedDocuments('Item', [data]);
+				await new Promise(r => setTimeout(r, perItemDelay));
+			}
+			console.log(`${MODULE_ID} | Successfully created ${toCreate.length} items (staggered)`);
+		} else {
+			await actor.createEmbeddedDocuments('Item', toCreate);
+			console.log(`${MODULE_ID} | Successfully created ${toCreate.length} items`);
+		}
 	}
 }
 

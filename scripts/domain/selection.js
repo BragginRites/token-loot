@@ -29,16 +29,32 @@ export function selectPick(items, count = 1, allowDuplicates = false) {
 }
 
 /**
- * Roll to meet a target between min and max, then run independent chances across pool until target met.
+ * Chance selection.
+ * By default, rolls the chance for each item independently once and returns all successes.
+ * When bounded mode is enabled, first rolls a target between min and max, then runs independent
+ * chances across the pool (respecting allowDuplicates) until the target is met.
+ *
  * @template T extends { chance?: number }
  * @param {T[]} items
- * @param {{ min?: number, max?: number, allowDuplicates?: boolean }} opts
+ * @param {{ bounded?: boolean, min?: number, max?: number, allowDuplicates?: boolean }} opts
  */
-export function selectChance(items, { min = 1, max = 1, allowDuplicates = false } = {}) {
+export function selectChance(items, { bounded = false, min = 1, max = 1, allowDuplicates = false } = {}) {
+    const pool = [...(items || [])];
+
+    // Unbounded: roll once per item, include all successes
+    if (!bounded) {
+        const successes = [];
+        for (const row of pool) {
+            const p = typeof row.chance === 'number' ? row.chance : 0;
+            if (Math.random() * 100 < p) successes.push(row);
+        }
+        return successes;
+    }
+
+    // Bounded: meet a random target within [min, max]
     const minCount = Math.max(0, Number(min));
     const maxCount = Math.max(minCount, Number(max));
     const target = randomIntegerInclusive(minCount, maxCount);
-    const pool = [...(items || [])];
     const successes = [];
     let safety = 1000;
     while (successes.length < target && safety-- > 0) {

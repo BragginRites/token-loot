@@ -15,6 +15,7 @@ import { applyCurrency } from './currency.js';
  * @property {string} name
  * @property {('all'|'pick'|'chance')} type
  * @property {number} [count]
+ * @property {boolean} [useChanceBounds]
  * @property {number} [chanceMin]
  * @property {number} [chanceMax]
  * @property {boolean} [allowDuplicates]
@@ -37,7 +38,10 @@ export async function awardActor({ actor, group, grantLog, grantItems }) {
         } else if (block.type === 'pick') {
             chosen = selectPick((block.items || []).filter(i => i.uuid), Number(block.count || 1), !!block.allowDuplicates);
         } else if (block.type === 'chance') {
-            chosen = selectChance(block.items || [], { min: Number(block.chanceMin ?? 1), max: Number(block.chanceMax ?? 1), allowDuplicates: !!block.allowDuplicates });
+            const bounded = !!block.useChanceBounds;
+            const min = Number(block.chanceMin ?? 1);
+            const max = Number(block.chanceMax ?? 1);
+            chosen = selectChance(block.items || [], { bounded, min, max, allowDuplicates: !!block.allowDuplicates });
         }
         // Attach block context to each chosen row so grantItems can honor per-block options
         const rowsWithContext = (chosen || []).map(r => ({
