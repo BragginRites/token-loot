@@ -12,7 +12,6 @@ export function setupBG3Compat() {
         if (mod) mod.api = Object.assign(mod.api || {}, { waitForGrants });
     } catch {}
 
-    // Optionally, other BG3-specific wiring can be placed here.
 }
 
 
