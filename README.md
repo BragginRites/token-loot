@@ -43,7 +43,7 @@ Each item row has `Qty Min` and `Qty Max`. When an item is granted, a random int
 
 ### Currency
 
-Currency distribution is currently not supported across systems. The UI may expose currency fields; treat them as experimental for now.
+Currency distribution is currently not supported across systems other than dnd5e. The UI may expose currency fields; treat them as experimental for now.
 
 ## Setup
 
