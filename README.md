@@ -4,7 +4,6 @@ A loot distribution system for Foundry VTT that automatically grants randomized 
 
 <img width="1176" height="1282" alt="image" src="https://github.com/user-attachments/assets/c61a692f-f0ab-4d1f-b3cd-f33e8fb98853" />
 
-[![Watch the video](https://img.youtube.com/vi/CZYEzDE1zVc/0.jpg)](https://www.youtube.com/watch?v=CZYEzDE1zVc)
 ▶️ [Watch the demo on YouTube](https://www.youtube.com/watch?v=CZYEzDE1zVc)
 
 
