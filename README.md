@@ -4,6 +4,8 @@ A loot distribution system for Foundry VTT that automatically grants randomized 
 
 <img width="1176" height="1282" alt="image" src="https://github.com/user-attachments/assets/c61a692f-f0ab-4d1f-b3cd-f33e8fb98853" />
 
+<iframe width="1840" height="1035" src="https://www.youtube.com/embed/CZYEzDE1zVc" title="Token Loot Demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 Coffee helps me stay up to 2am to write these modules. Thank you for the lack of sleep in advance!
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/bragginrites)
