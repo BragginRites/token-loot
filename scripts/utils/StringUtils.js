@@ -6,10 +6,24 @@
  * @returns {string} A shortened version for display
  */
 export function shortName(uuid) {
-    try { 
-        const parts = String(uuid).split('.'); 
-        return parts[0] + (parts[1] ? `…${parts[1].slice(-6)}` : ''); 
-    } catch { 
-        return uuid; 
+    try {
+        const parts = String(uuid).split('.');
+        return parts[0] + (parts[1] ? `…${parts[1].slice(-6)}` : '');
+    } catch {
+        return uuid;
     }
 }
+
+/**
+ * Convert a name to a slug (lowercase, alphanumeric, hyphens)
+ * @param {string} name
+ * @returns {string}
+ */
+export function slugify(name) {
+    return String(name || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-');
+}
+

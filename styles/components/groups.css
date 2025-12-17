@@ -8,7 +8,7 @@
     overflow-y: auto;
     padding: 0;
     margin: 0;
-    max-height: calc(100vh - 200px); /* Leave space for header and padding */
+    height: 100%;
 }
 
 #tl-group-manager .tl-groups::-webkit-scrollbar {
@@ -37,16 +37,20 @@
     background: linear-gradient(135deg, #0f1419 0%, #0a0e14 100%);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     overflow: hidden;
-    margin: 10px 1.25% 24px 1.25%; /* 10px top buffer, 2.5% total margin (1.25% each side), 24px bottom */
-    width: calc(97.5% - 0px); /* 2.5% smaller than parent */
+    margin: 10px 1.25% 24px 1.25%;
+    /* 10px top buffer, 2.5% total margin (1.25% each side), 24px bottom */
+    width: calc(97.5% - 0px);
+    /* 2.5% smaller than parent */
 }
 
 #tl-group-manager .tl-card:first-child {
-    margin-top: 10px; /* Ensure first group has the buffer from title bar */
+    margin-top: 10px;
+    /* Ensure first group has the buffer from title bar */
 }
 
 #tl-group-manager .tl-card:last-child {
-    margin-bottom: 10px; /* 10px buffer at the end of groups section */
+    margin-bottom: 10px;
+    /* 10px buffer at the end of groups section */
 }
 
 #tl-group-manager .tl-card-hdr {
@@ -121,4 +125,9 @@
 
 #tl-group-manager .tl-card.collapsed .tl-collapse-arrow {
     transform: rotate(-90deg);
+}
+
+/* Hidden by search filter */
+#tl-group-manager .tl-card.tl-hidden {
+    display: none;
 }

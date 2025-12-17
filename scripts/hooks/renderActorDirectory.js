@@ -1,15 +1,17 @@
 'use strict';
 
-import { openGroupManager } from '../ui/groupManager/GroupManagerController.js';
 import { MODULE_ID } from '../utils/settings.js';
+import { openGroupManager } from '../ui/groupManager/GroupManagerController.js';
 
 export function setupRenderActorDirectoryHook() {
-    Hooks.on('renderActorDirectory', (app, html) => {
+    function injectLootGroupsButton(rootEl) {
         try {
-            const root = (html?.[0]) || html || (app?.element?.[0]) || app?.element || null;
-            const container = (root && root.querySelector) ? (root.querySelector('.directory-footer') || root.querySelector('footer')) : document.querySelector('#actors .directory-footer');
+            if (!rootEl || !rootEl.querySelector) return;
+            // V13 sidebar structure
+            const container = rootEl.querySelector('.directory-footer') || rootEl.querySelector('footer');
             if (!container) return;
-            if (container.querySelector?.('.tl-open-manager')) return;
+            if (container.querySelector('.tl-open-manager')) return;
+
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'tl-open-manager';
@@ -17,9 +19,27 @@ export function setupRenderActorDirectoryHook() {
             btn.addEventListener('click', () => openGroupManager());
             container.appendChild(btn);
         } catch (e) {
-            console.warn(`${MODULE_ID} | Failed to inject Actor Directory button`, e);
+            console.warn(`${MODULE_ID} | Failed to inject Loot Groups button`, e);
+        }
+    }
+
+    // V13: renderActorDirectory hook
+    Hooks.on('renderActorDirectory', (app, html) => {
+        const root = html instanceof HTMLElement ? html : html?.[0] ?? app?.element ?? null;
+        injectLootGroupsButton(root || document.querySelector('#actors'));
+    });
+
+    // V13: changeSidebarTab fallback
+    Hooks.on('changeSidebarTab', (app) => {
+        try {
+            const isActors = app?.tabName === 'actors' || app?.id === 'actors';
+            if (!isActors) return;
+            setTimeout(() => {
+                const root = app?.element instanceof HTMLElement ? app.element : app?.element?.[0] ?? document.querySelector('#actors');
+                injectLootGroupsButton(root);
+            }, 50);
+        } catch (e) {
+            console.warn(`${MODULE_ID} | changeSidebarTab injection failed`, e);
         }
     });
 }
-
-

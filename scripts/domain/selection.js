@@ -1,5 +1,7 @@
 'use strict';
 
+import { randomSample, randomIntegerInclusive } from '../utils/random.js';
+
 /**
  * Return a shallow copy of items.
  * @template T
@@ -79,24 +81,5 @@ export function selectChance(items, { bounded = false, min = 1, max = 1, allowDu
     return successes;
 }
 
-/** @param {number} min @param {number} max */
-export function randomIntegerInclusive(min, max) {
-    const a = Number.isFinite(min) ? min : 0;
-    const b = Number.isFinite(max) ? max : 0;
-    const lo = Math.min(a, b);
-    const hi = Math.max(a, b);
-    return Math.floor(Math.random() * (hi - lo + 1)) + lo;
-}
-
-/** @template T @param {T[]} arr @param {number} k */
-export function randomSample(arr, k) {
-    const copy = [...arr];
-    const out = [];
-    for (let i = 0; i < k && copy.length > 0; i++) {
-        const idx = Math.floor(Math.random() * copy.length);
-        out.push(copy.splice(idx, 1)[0]);
-    }
-    return out;
-}
 
 

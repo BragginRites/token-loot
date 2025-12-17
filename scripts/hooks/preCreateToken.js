@@ -3,13 +3,17 @@
 import { MODULE_ID } from '../utils/settings.js';
 import { mergeCurrency } from '../domain/currency.js';
 import { findGroupForActor } from '../domain/groupResolver.js';
+import { resolveGroupLoot } from '../domain/awardService.js';
+import { randomIntegerInclusive } from '../utils/random.js';
 
 export function setupPreCreateTokenHook() {
     Hooks.on('preCreateToken', async (tokenDocument, data, options, userId) => {
         try {
             if (!game.user.isGM) return;
-            const enabled = !!game.settings.get(MODULE_ID, 'usePreCreateForUnlinked');
-            if (!enabled) return;
+            if (!game.user.isGM) return;
+            // Always enabled for unlinked tokens now (V13 standard)
+            // const enabled = !!game.settings.get(MODULE_ID, 'usePreCreateForUnlinked');
+            // if (!enabled) return;
             const isLinked = !!(data.actorLink ?? tokenDocument?.actorLink);
             if (isLinked) return;
 
@@ -21,82 +25,27 @@ export function setupPreCreateTokenHook() {
             const baseActor = baseActorId ? game.actors?.get(baseActorId) : null;
             if (!baseActor) return;
 
-            const rules = getEffectiveRulesForActor(baseActor);
-            if (!rules) return;
-            const group = findGroupForActor(rules, baseActor);
+            // Avoid getting rules if we don't have a base actor
+            const settings = game.settings.get(MODULE_ID, 'settings');
+            const rules = settings?.scopes?.world ?? { groups: {} };
+            const group = findGroupForActor({ groups: rules.groups }, baseActor); // fix: pass object with groups prop
             if (!group) return;
 
             const grantLog = { currency: {}, items: [] };
 
-            if (group.currency) {
-                data.actorData = data.actorData || {};
-                await mergeCurrency(data.actorData, group.currency);
-            }
+            const { currency, items } = await resolveGroupLoot(group);
 
-            const chosenRows = [];
-            for (const block of group.distributionBlocks || []) {
-                if (!block.items || block.items.length === 0) continue;
-                if (block.type === 'all') {
-                    chosenRows.push(...(block.items || []));
-                } else if (block.type === 'pick') {
-                    const count = block.count || 1;
-                    const availableItems = block.items.filter(item => item.uuid);
-                    if (block.allowDuplicates) {
-                        for (let i = 0; i < count && availableItems.length > 0; i++) {
-                            chosenRows.push(availableItems[Math.floor(Math.random() * availableItems.length)]);
-                        }
-                    } else {
-                        const picked = randomSample(availableItems, Math.min(count, availableItems.length));
-                        const seen = new Set();
-                        for (const r of picked) {
-                            const id = r?.uuid;
-                            if (!id || seen.has(id)) continue;
-                            seen.add(id);
-                            chosenRows.push(r);
-                        }
-                    }
-                } else if (block.type === 'chance') {
-                    const bounded = !!block.useChanceBounds;
-                    const minCount = Math.max(0, Number(block.chanceMin ?? 1));
-                    const maxCount = Math.max(minCount, Number(block.chanceMax ?? minCount));
-                    if (!bounded) {
-                        for (const row of (block.items || [])) {
-                            const p = typeof row.chance === 'number' ? row.chance : 0;
-                            if (Math.random() * 100 < p) chosenRows.push(row);
-                        }
-                    } else {
-                        const pool = [...(block.items || [])];
-                        const successes = [];
-                        const allowDup = !!block.allowDuplicates;
-                        const target = randomIntegerInclusive(minCount, maxCount);
-                        let safety = 1000;
-                        while (successes.length < target && safety-- > 0) {
-                            const order = [...pool];
-                            for (let i = order.length - 1; i > 0; i--) {
-                                const j = Math.floor(Math.random() * (i + 1));
-                                [order[i], order[j]] = [order[j], order[i]];
-                            }
-                            for (const row of order) {
-                                const p = typeof row.chance === 'number' ? row.chance : 0;
-                                if (Math.random() * 100 < p) {
-                                    successes.push(row);
-                                    if (!allowDup) {
-                                        const idx = pool.indexOf(row);
-                                        if (idx >= 0) pool.splice(idx, 1);
-                                    }
-                                    if (successes.length >= target) break;
-                                }
-                            }
-                            if (!allowDup && pool.length === 0) break;
-                        }
-                        chosenRows.push(...successes);
-                    }
-                }
+            if (currency) {
+                data.actorData = data.actorData || {};
+                await mergeCurrency(data.actorData, currency);
             }
 
             const toCreate = [];
-            for (const row of chosenRows ?? []) {
+            for (const row of items ?? []) {
                 if (!row?.uuid) continue;
+                // preCreate logic generates items but puts them in actorData.items
+                // It CANNOT run asynchronous adapter createScroll easily if it needs to look up items?
+                // Actually fromUuid is async loop.
                 const qty = randomIntegerInclusive(row.qtyMin ?? 1, row.qtyMax ?? 1);
                 try {
                     const doc = await fromUuid(row.uuid);
@@ -104,11 +53,29 @@ export function setupPreCreateTokenHook() {
                     const dataObj = doc.toObject();
                     if (dataObj._id) delete dataObj._id;
                     dataObj.system = dataObj.system || {};
-                    dataObj.system.quantity = qty;
+                    if (typeof dataObj.system.quantity === 'number') {
+                        dataObj.system.quantity = qty;
+                    }
+
+                    // Flags
                     dataObj.flags = dataObj.flags || {};
                     dataObj.flags[MODULE_ID] = { granted: true, groupId: row.groupId ?? null };
+
+                    // Note: We are NOT calling adapter.createScroll or adapter.equipItem here 
+                    // because preCreateToken context is weird and might not support full adapter logic 
+                    // (which might expect a real Actor or Item document).
+                    // However, we COULD try to use adapter.equipItem(dataObj) because it just mutates data!
+                    // Let's try it if adapter is available.
+                    if (game.tokenLoot.adapter && row.autoEquip) {
+                        game.tokenLoot.adapter.equipItem(dataObj);
+                    }
+
                     toCreate.push(dataObj);
-                } catch {}
+                    // Add to log? Log is usually for chat
+                    grantLog.items.push({ name: dataObj.name, qty });
+                } catch (e) {
+                    // ignore errors for individual items
+                }
             }
 
             data.actorData = data.actorData || {};
@@ -119,32 +86,9 @@ export function setupPreCreateTokenHook() {
 
             data.flags = data.flags || {};
             data.flags[MODULE_ID] = Object.assign({}, data.flags[MODULE_ID], { preApplied: true, awarded: true, grantLog });
+
         } catch (e) {
             console.warn(`${MODULE_ID} | preCreateToken failed`, e);
         }
     });
 }
-
-function getEffectiveRulesForActor(actor) {
-    return game.settings.get(MODULE_ID, 'settings')?.scopes?.world ?? { groups: {} };
-}
-
-function randomIntegerInclusive(min, max) {
-    const a = Number.isFinite(min) ? min : 0;
-    const b = Number.isFinite(max) ? max : 0;
-    const lo = Math.min(a, b);
-    const hi = Math.max(a, b);
-    return Math.floor(Math.random() * (hi - lo + 1)) + lo;
-}
-
-function randomSample(arr, k) {
-    const copy = [...arr];
-    const out = [];
-    for (let i = 0; i < k && copy.length > 0; i++) {
-        const idx = Math.floor(Math.random() * copy.length);
-        out.push(copy.splice(idx, 1)[0]);
-    }
-    return out;
-}
-
-

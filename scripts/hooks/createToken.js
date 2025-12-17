@@ -14,24 +14,25 @@ export function setupCreateTokenHook() {
             if (!actor) return;
 
             // Guard: avoid double-award if any other listener or race triggers
-            try { 
+            try {
                 const awarded = await tokenDocument.getFlag(MODULE_ID, 'awarded');
                 if (awarded) return;
-            } catch {}
+            } catch { }
 
             // If loot was applied earlier in preCreate (for unlinked), only post the chat here
             try {
                 const preApplied = tokenDocument.getFlag(MODULE_ID, 'preApplied');
                 if (preApplied) {
-                    const rules = getEffectiveRulesForActor(actor);
-                    const group = rules ? findGroupForActor(rules, actor) : null;
                     const grantLog = tokenDocument.getFlag(MODULE_ID, 'grantLog') || { currency: {}, items: [] };
-                    if (group) await postGMChatLog(actor, group, grantLog);
-                    try { await tokenDocument.unsetFlag(MODULE_ID, 'preApplied'); } catch {}
+                    const rules = getEffectiveRulesForActor(actor);
+                    // Just find the single matching group name for display if possible, or generic
+                    const group = rules ? findGroupForActor(rules, actor) : { name: 'Unknown Group' };
+                    await postGMChatLog(actor, group, grantLog);
+                    try { await tokenDocument.unsetFlag(MODULE_ID, 'preApplied'); } catch { }
                     Hooks.callAll('token-loot.awarded', tokenDocument);
                     return;
                 }
-            } catch {}
+            } catch { }
 
             const staggerMs = Number(game.settings.get(MODULE_ID, 'awardStaggerMs') || 0);
 
@@ -46,14 +47,18 @@ export function setupCreateTokenHook() {
                 const grantLog = { currency: {}, items: [] };
 
                 markGrantsStart(tokenDocument.id);
-                try { await tokenDocument.setFlag(MODULE_ID, 'awarded', true); } catch {}
-                try { await tokenDocument.setFlag(MODULE_ID, 'preApplied', true); } catch {}
+                try { await tokenDocument.setFlag(MODULE_ID, 'awarded', true); } catch { }
+                try { await tokenDocument.setFlag(MODULE_ID, 'preApplied', true); } catch { }
+
+                const adapter = game.tokenLoot.adapter;
+
                 for (const group of groups) {
-                    await withRetries(() => awardActor({ actor, group, grantLog, grantItems }));
+                    await withRetries(() => awardActor(actor, group, grantLog, adapter));
                 }
+
                 // Post a single combined chat log
                 await postGMChatLog(actor, { name: groups.map(g => g.name).join(', ') }, grantLog);
-                try { await tokenDocument.unsetFlag(MODULE_ID, 'preApplied'); } catch {}
+                try { await tokenDocument.unsetFlag(MODULE_ID, 'preApplied'); } catch { }
                 Hooks.callAll('token-loot.awarded', tokenDocument);
                 markGrantsDone(tokenDocument.id);
             });
@@ -66,6 +71,35 @@ export function setupCreateTokenHook() {
 function getEffectiveRulesForActor(actor) {
     // MVP: only world scope
     return game.settings.get(MODULE_ID, 'settings')?.scopes?.world ?? { groups: {} };
+}
+
+async function postGMChatLog(actor, group, grantLog) {
+    try {
+        const enabled = !!game.settings.get(MODULE_ID, 'enableGMChatSummary');
+        if (!enabled) return;
+    } catch { }
+    const lines = [];
+    lines.push(`<strong>${actor.name}</strong> received loot from group <em>${group.name}</em>:`);
+    let hasLoot = false;
+    if (Object.keys(grantLog.currency).length) {
+        const cur = Object.entries(grantLog.currency)
+            .filter(([k, v]) => v > 0)
+            .map(([k, v]) => `${v} ${k.toUpperCase()}`)
+            .join(', ');
+        if (cur) { lines.push(`💰 Currency: ${cur}`); hasLoot = true; }
+    }
+    if (grantLog.items.length) {
+        lines.push(`📦 Items:`);
+        for (const it of grantLog.items) lines.push(`&nbsp;&nbsp;• ${it.qty}x ${it.name}`);
+        hasLoot = true;
+    }
+    if (!hasLoot) lines.push(`<em>No items or currency granted.</em>`);
+    const content = `<div class="token-loot-log">${lines.map(l => `<div>${l}</div>`).join('')}</div>`;
+    try {
+        await ChatMessage.create({ content, whisper: ChatMessage.getWhisperRecipients('GM').map(u => u.id) });
+    } catch (e) {
+        console.warn(`${MODULE_ID} | Failed to create chat message`, e);
+    }
 }
 
 async function grantItems(actor, rows, grantLog) {
@@ -93,13 +127,13 @@ async function grantItems(actor, rows, grantLog) {
                             const created = await ItemCls.createScrollFromSpell(doc);
                             scrollData = created?.toObject ? created.toObject() : created;
                         }
-                    } catch {}
+                    } catch { }
                     try {
                         if (!scrollData && game?.dnd5e?.documents?.Item5e?.createScrollFromSpell) {
                             const created = await game.dnd5e.documents.Item5e.createScrollFromSpell(doc);
                             scrollData = created?.toObject ? created.toObject() : created;
                         }
-                    } catch {}
+                    } catch { }
                     if (scrollData) {
                         if (scrollData._id) delete scrollData._id;
                         scrollData.system = scrollData.system || {};
@@ -108,7 +142,7 @@ async function grantItems(actor, rows, grantLog) {
                         data = scrollData;
                     }
                 }
-            } catch {}
+            } catch { }
             // Auto-equip where appropriate (honor per-row autoEquip flag propagated from block)
             try {
                 const t = String(data.type || '').toLowerCase();
@@ -122,10 +156,10 @@ async function grantItems(actor, rows, grantLog) {
                     // Generic fallback for systems that use a boolean equipped field
                     data.system.equipped = true;
                 }
-            } catch {}
+            } catch { }
             toCreate.push(data);
             grantLog.items.push({ name: data.name, qty });
-        } catch {}
+        } catch { }
     }
     if (toCreate.length) {
         const perItemDelay = Number(game.settings.get(MODULE_ID, 'awardItemStaggerMs') || 0);
@@ -138,35 +172,6 @@ async function grantItems(actor, rows, grantLog) {
         } else {
             await actor.createEmbeddedDocuments('Item', toCreate);
         }
-    }
-}
-
-async function postGMChatLog(actor, group, grantLog) {
-    try {
-        const enabled = !!game.settings.get(MODULE_ID, 'enableGMChatSummary');
-        if (!enabled) return;
-    } catch {}
-    const lines = [];
-    lines.push(`<strong>${actor.name}</strong> received loot from group <em>${group.name}</em>:`);
-    let hasLoot = false;
-    if (Object.keys(grantLog.currency).length) {
-        const cur = Object.entries(grantLog.currency)
-            .filter(([k,v]) => v > 0)
-            .map(([k,v]) => `${v} ${k.toUpperCase()}`)
-            .join(', ');
-        if (cur) { lines.push(`💰 Currency: ${cur}`); hasLoot = true; }
-    }
-    if (grantLog.items.length) {
-        lines.push(`📦 Items:`);
-        for (const it of grantLog.items) lines.push(`&nbsp;&nbsp;• ${it.qty}x ${it.name}`);
-        hasLoot = true;
-    }
-    if (!hasLoot) lines.push(`<em>No items or currency granted.</em>`);
-    const content = `<div class="token-loot-log">${lines.map(l => `<div>${l}</div>`).join('')}</div>`;
-    try {
-        await ChatMessage.create({ content, whisper: ChatMessage.getWhisperRecipients('GM').map(u => u.id) });
-    } catch (e) {
-        console.warn(`${MODULE_ID} | Failed to create chat message`, e);
     }
 }
 

@@ -30,38 +30,58 @@ export async function saveWorldRuleSet(worldRules) {
 	await setFullSettings(s);
 }
 
-export function slugify(name) {
-	return String(name || '')
-		.trim()
-		.toLowerCase()
-		.replace(/[^a-z0-9\s-]/g, '')
-		.replace(/\s+/g, '-');
-}
-
-
+// Re-export slugify for backwards compatibility
+export { slugify } from './StringUtils.js';
 
 export function registerCoreSettings() {
-    game.settings.register(MODULE_ID, 'settings', {
-        name: 'Token Loot Settings',
-        hint: 'Configure groups and loot.',
-        scope: 'world',
-        config: false,
-        type: Object,
-        default: defaultSettings(),
-        onChange: value => {
-            // Settings updated
-        }
-    });
+	game.settings.register(MODULE_ID, 'settings', {
+		name: 'Token Loot Settings',
+		hint: 'Configure groups and loot.',
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: defaultSettings(),
+		onChange: value => {
+			// Settings updated
+		}
+	});
 
-    // Client UI preferences
-    game.settings.register(MODULE_ID, 'groupManagerSize', {
-        scope: 'client',
-        config: false,
-        type: Object,
-        default: { width: 860, height: 620 }
-    });
+	// Client UI preferences
+	game.settings.register(MODULE_ID, 'groupManagerSize', {
+		scope: 'client',
+		config: false,
+		type: Object,
+		default: { width: 860, height: 620 }
+	});
+
+	// V13+ ApplicationV2 settings menu - use dynamic import to avoid circular dependency
+	class TLGroupManagerMenu extends foundry.applications.api.ApplicationV2 {
+		static DEFAULT_OPTIONS = {
+			id: 'tl-group-manager-menu',
+			window: { title: 'Loot Group Manager' }
+		};
+
+		async _renderHTML(context, options) {
+			try {
+				const { openGroupManager } = await import('../ui/groupManager/GroupManagerController.js');
+				openGroupManager();
+			} catch (e) {
+				console.warn(`${MODULE_ID} | Failed to open manager`, e);
+			}
+			setTimeout(() => { try { this.close(); } catch { } }, 0);
+			return document.createElement('div');
+		}
+	}
+
+	game.settings.registerMenu(MODULE_ID, 'groupManager', {
+		name: 'Loot Group Manager',
+		label: 'Open Manager',
+		hint: 'Manage loot groups, actors, and items.',
+		icon: 'fas fa-list',
+		restricted: true,
+		type: TLGroupManagerMenu
+	});
 }
-
 
 export async function runMigrations() {
 	const current = getFullSettings();
@@ -95,14 +115,7 @@ export async function runMigrations() {
 }
 
 export function registerReliabilitySettings() {
-	game.settings.register(MODULE_ID, 'usePreCreateForUnlinked', {
-		scope: 'world',
-		config: true,
-		name: 'Apply Loot in preCreate for Unlinked Tokens',
-		hint: 'When enabled, unlinked tokens receive loot in preCreate, avoiding race conditions.',
-		type: Boolean,
-		default: false
-	});
+
 
 	game.settings.register(MODULE_ID, 'awardStaggerMs', {
 		scope: 'world',
@@ -110,7 +123,7 @@ export function registerReliabilitySettings() {
 		name: 'Loot Award Stagger (ms)',
 		hint: 'Optional delay before awarding loot per token to reduce contention. 0 to disable.',
 		type: Number,
-		default: 0
+		default: 150
 	});
 
 	game.settings.register(MODULE_ID, 'awardItemStaggerMs', {
@@ -132,5 +145,3 @@ export function registerReliabilitySettings() {
 		default: false
 	});
 }
-
-

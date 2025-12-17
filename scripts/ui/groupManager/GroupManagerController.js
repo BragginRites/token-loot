@@ -7,20 +7,22 @@ import { GroupManagerState } from './services/GroupManagerState.js';
 import { AppEventHandlers } from './handlers/AppEventHandlers.js';
 import { GroupRenderer } from './renderers/GroupRenderer.js';
 import { NameResolver } from './services/NameResolver.js';
-import { slugify } from '../../utils/settings.js';
+import { slugify } from '../../utils/StringUtils.js';
+import { saveCollapsedState } from './services/CollapseManager.js';
 
 /**
  * Main controller for the Group Manager UI
  * Coordinates all services, renderers, and state management
  */
 export class GroupManagerController {
-    
+
     constructor() {
         this.overlayId = 'tl-group-manager';
         this.state = null;
         this.autoSave = null;
         this.overlay = null;
         this.listEl = null;
+        this.searchTerm = '';
     }
 
     /**
@@ -52,13 +54,27 @@ export class GroupManagerController {
 
         const panel = this.overlay.querySelector('.tl-panel');
         const dragHandle = this.overlay.querySelector('#tl-drag');
-        
-        // Set up panel interactions
+
         makeDraggable(panel, dragHandle);
         makeResizable(panel);
         loadSavedSize(panel);
 
         this.listEl = this.overlay.querySelector('#tl-groups');
+
+        // Search - uses visibility toggle, not re-render
+        const searchInput = this.overlay.querySelector('#tl-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                this.searchTerm = (e.target.value || '').trim().toLowerCase();
+                this.applySearchFilter();
+            });
+        }
+
+        // Collapse All
+        const collapseBtn = this.overlay.querySelector('#tl-collapse-all');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => this.toggleCollapseAll());
+        }
     }
 
     /**
@@ -74,48 +90,125 @@ export class GroupManagerController {
      */
     setupEventHandlers() {
         AppEventHandlers.setupAppEvents(
-            this.overlay, 
-            this.state, 
-            this.autoSave, 
-            () => this.renderGroups(), 
-            slugify, 
+            this.overlay,
+            this.state,
+            this.autoSave,
+            this, // Pass controller for incremental methods
+            slugify,
             () => this.closeIfOpen()
         );
     }
 
     /**
-     * Render all groups and their components
+     * Initial render - only called once on open
      */
-    async renderGroups() {
+    async initialRender() {
         this.listEl.innerHTML = '';
         const gids = Object.keys(this.state.getGroups());
-        
+
         if (gids.length === 0) {
             this.listEl.innerHTML = `<div class="tl-empty">No groups yet. Click "Add Loot Group".</div>`;
             return;
         }
-        
-        // Render each group using the GroupRenderer
-        for (const gid of gids) {
-            const group = this.state.getGroup(gid);
-            const card = await GroupRenderer.renderSingleGroup(
-                group, 
-                () => this.renderGroups(), 
-                this.autoSave, 
-                this.state
-            );
-            this.listEl.appendChild(card);
-        }
 
-        // Resolve names and images for all rendered elements
-        NameResolver.resolveNamesIn(this.listEl);
+        for (const gid of gids) {
+            await this.appendGroupCard(gid);
+        }
     }
 
     /**
-     * Perform initial render
+     * Append a single group card to the list
      */
-    async initialRender() {
-        await this.renderGroups();
+    async appendGroupCard(gid) {
+        // Remove empty message if present
+        const emptyMsg = this.listEl.querySelector('.tl-empty');
+        if (emptyMsg) emptyMsg.remove();
+
+        const group = this.state.getGroup(gid);
+        if (!group) return;
+
+        const card = await GroupRenderer.renderSingleGroup(
+            group,
+            this,
+            this.autoSave,
+            this.state
+        );
+        this.listEl.appendChild(card);
+        NameResolver.resolveNamesIn(card);
+        this.applySearchFilter();
+    }
+
+    /**
+     * Remove a group card from the DOM
+     */
+    removeGroupCard(gid) {
+        const card = this.listEl.querySelector(`.tl-card[data-gid="${gid}"]`);
+        if (card) card.remove();
+
+        // Show empty message if no groups left
+        if (this.listEl.children.length === 0) {
+            this.listEl.innerHTML = `<div class="tl-empty">No groups yet. Click "Add Loot Group".</div>`;
+        }
+    }
+
+    /**
+     * Get a group card element by ID
+     */
+    getGroupCard(gid) {
+        return this.listEl.querySelector(`.tl-card[data-gid="${gid}"]`);
+    }
+
+    /**
+     * Apply search filter by toggling visibility
+     */
+    applySearchFilter() {
+        const cards = this.listEl.querySelectorAll('.tl-card');
+        let visibleCount = 0;
+
+        cards.forEach(card => {
+            const gid = card.dataset.gid;
+            const group = this.state.getGroup(gid);
+            const name = (group?.name || '').toLowerCase();
+            const matches = !this.searchTerm || name.includes(this.searchTerm);
+
+            card.classList.toggle('tl-hidden', !matches);
+            if (matches) visibleCount++;
+        });
+
+        // Update empty message
+        let emptyMsg = this.listEl.querySelector('.tl-empty');
+        if (visibleCount === 0 && cards.length > 0) {
+            if (!emptyMsg) {
+                emptyMsg = document.createElement('div');
+                emptyMsg.className = 'tl-empty';
+                this.listEl.appendChild(emptyMsg);
+            }
+            emptyMsg.textContent = `No groups match "${this.searchTerm}".`;
+        } else if (emptyMsg && cards.length > 0) {
+            emptyMsg.remove();
+        }
+    }
+
+    /**
+     * Toggle collapse state for all groups
+     */
+    toggleCollapseAll() {
+        const cards = Array.from(this.listEl.querySelectorAll('.tl-card:not(.tl-hidden)'));
+        if (cards.length === 0) return;
+
+        const anyExpanded = cards.some(c => !c.classList.contains('collapsed'));
+        const shouldCollapse = anyExpanded;
+
+        cards.forEach(card => {
+            if (shouldCollapse) card.classList.add('collapsed');
+            else card.classList.remove('collapsed');
+
+            const gid = card.dataset.gid;
+            if (gid) saveCollapsedState(gid, 'group', shouldCollapse);
+        });
+
+        const btn = this.overlay.querySelector('#tl-collapse-all');
+        if (btn) btn.textContent = shouldCollapse ? "Expand All" : "Collapse All";
     }
 }
 

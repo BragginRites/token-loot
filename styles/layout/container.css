@@ -32,7 +32,7 @@
     max-height: 95vh;
     display: flex;
     flex-direction: column;
-    overflow: auto;
+    overflow: hidden;
     backdrop-filter: blur(8px);
 }
 
