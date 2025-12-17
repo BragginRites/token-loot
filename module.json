@@ -28,7 +28,7 @@
   ],
   "persistentStorage": true,
   "url": "https://github.com/BragginRites/token-loot",
-  "manifest": "https://github.com/BragginRites/token-loot/releases/latest/download/module.json",
+  "manifest": "https://github.com/BragginRites/token-loot/releases/download/0.0.2/module.json",
   "download": "https://github.com/BragginRites/token-loot/releases/download/0.0.2/token-loot.zip",
   "license": "MIT",
   "readme": "README.md",
