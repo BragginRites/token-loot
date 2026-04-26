@@ -24,43 +24,40 @@ export class GroupRenderer {
     static async renderSingleGroup(group, controller, autoSave, state) {
         const card = await renderGroupCard(group);
 
-        // Set up group title editing - no re-render needed
+        // Set up group title editing — also syncs sidebar name
         this.setupGroupTitle(card, group, autoSave, controller);
 
-        // Set up currency form - no re-render needed
+        // Set up currency form
         this.setupCurrencyForm(card, group, autoSave);
 
-        // Set up actors area - incremental updates
-        await this.setupActorsArea(card, group, autoSave);
+        // Set up actors area with sidebar count sync
+        await this.setupActorsArea(card, group, autoSave, controller);
 
-        // Set up distribution blocks - incremental updates
-        await this.setupDistributionBlocks(card, group, autoSave);
+        // Set up distribution blocks with sidebar count sync
+        await this.setupDistributionBlocks(card, group, autoSave, controller);
 
-        // Set up add block button - incremental append
-        this.setupAddBlockButton(card, group, autoSave);
+        // Set up add block button
+        this.setupAddBlockButton(card, group, autoSave, controller);
 
-        // Set up group actions (clear, duplicate, delete) - incremental
+        // Set up group actions (clear, duplicate, delete)
         this.setupGroupActions(card, group, autoSave, state, controller);
 
-        // Set up collapse functionality
-        this.setupCollapseStates(card, group);
-        this.setupCollapseBehavior(card, group);
+        // Set up collapse for inner sections only (not the group card itself)
+        this.setupSectionCollapseStates(card, group);
+        this.setupSectionCollapseBehavior(card, group);
 
         return card;
     }
 
     /**
-     * Set up group title editing
+     * Set up group title editing — syncs the sidebar item name on change
      */
     static setupGroupTitle(card, group, autoSave, controller) {
         const titleInput = card.querySelector('.tl-title');
         titleInput?.addEventListener('input', ev => {
             group.name = ev.currentTarget.value;
             autoSave.saveDeferred();
-        });
-        // Update search filter on blur in case name changed
-        titleInput?.addEventListener('blur', () => {
-            controller.applySearchFilter();
+            controller.refreshSidebar(group.id);
         });
     }
 
@@ -72,25 +69,30 @@ export class GroupRenderer {
     }
 
     /**
-     * Set up actors area with drag-drop and chips - incremental
+     * Set up actors area with drag-drop and chips — syncs sidebar on change
      */
-    static async setupActorsArea(card, group, autoSave) {
+    static async setupActorsArea(card, group, autoSave, controller) {
         const actorsEl = card.querySelector('.tl-actors');
-        await ActorEventHandlers.setupActorEvents(actorsEl, group, autoSave);
+        // Wrap autoSave so sidebar updates on actor add/remove
+        const wrappedAutoSave = {
+            save: () => { autoSave.save(); controller.refreshSidebar(group.id); },
+            saveDeferred: () => { autoSave.saveDeferred(); controller.refreshSidebar(group.id); }
+        };
+        await ActorEventHandlers.setupActorEvents(actorsEl, group, wrappedAutoSave);
     }
 
     /**
      * Set up all distribution blocks for a group
      */
-    static async setupDistributionBlocks(card, group, autoSave) {
+    static async setupDistributionBlocks(card, group, autoSave, controller) {
         const blocksEl = card.querySelector('.tl-distribution-blocks');
         await BlockRenderer.renderDistributionBlocks(blocksEl, group, autoSave);
     }
 
     /**
-     * Set up add block button - appends new block without full re-render
+     * Set up add block button — appends new block, syncs sidebar count
      */
-    static setupAddBlockButton(card, group, autoSave) {
+    static setupAddBlockButton(card, group, autoSave, controller) {
         const addBlockBtn = card.querySelector('.tl-add-block');
         if (addBlockBtn) {
             addBlockBtn.addEventListener('click', async (e) => {
@@ -99,7 +101,7 @@ export class GroupRenderer {
                 const blockId = `block-${Date.now()}`;
                 const newBlock = {
                     id: blockId,
-                    name: 'New Block',
+                    name: game.i18n.localize('TOKEN_LOOT.Block.NewBlock') || 'New Block',
                     type: 'chance',
                     count: 1,
                     allowDuplicates: false,
@@ -107,10 +109,10 @@ export class GroupRenderer {
                 };
                 group.distributionBlocks.push(newBlock);
 
-                // Append just this block
                 const blocksEl = card.querySelector('.tl-distribution-blocks');
                 await BlockRenderer.appendBlock(blocksEl, group, newBlock, autoSave);
                 autoSave.save();
+                controller.refreshSidebar(group.id);
             });
         }
     }
@@ -119,7 +121,7 @@ export class GroupRenderer {
      * Set up group actions (clear actors, duplicate, delete)
      */
     static setupGroupActions(card, group, autoSave, state, controller) {
-        // Clear all actors - just clears chips, no full re-render
+        // Clear all actors
         card.querySelector('.tl-clear-actors')?.addEventListener('click', async (e) => {
             e.stopPropagation();
 
@@ -129,8 +131,8 @@ export class GroupRenderer {
                 try {
                     const { confirmDialog } = await import('../components/ContextMenu.js');
                     confirmed = await confirmDialog(
-                        'Clear All Actors',
-                        `Are you sure you want to remove all actors from "${group.name}"?`,
+                        game.i18n.localize('TOKEN_LOOT.Card.ClearAllActorsTitle') || 'Clear All Actors',
+                        game.i18n.format("TOKEN_LOOT.Dialog.ClearAllActorsPrompt", { name: group.name }),
                         { danger: true }
                     );
                 } catch { }
@@ -141,14 +143,15 @@ export class GroupRenderer {
                 const actorsEl = card.querySelector('.tl-actors');
                 ActorEventHandlers.clearActorChips(actorsEl);
                 autoSave.save();
+                controller.refreshSidebar(group.id);
             }
         });
 
-        // Duplicate group - appends new card
+        // Duplicate group
         card.querySelector('.tl-duplicate')?.addEventListener('click', async (e) => {
             e.stopPropagation();
             const originalGroup = group;
-            const baseTitle = `${originalGroup.name} Copy`;
+            const baseTitle = game.i18n.format("TOKEN_LOOT.Card.DuplicateGroupTitle", { name: originalGroup.name });
             const id = uniqueGroupId(state.getRules(), slugify(baseTitle) || 'group');
 
             const duplicatedGroup = {
@@ -169,11 +172,13 @@ export class GroupRenderer {
             autoSave.save();
         });
 
-        // Delete group - removes card from DOM
+        // Delete group
         card.querySelector('.tl-delete')?.addEventListener('click', async (ev) => {
             const { confirmDialog } = await import('../components/ContextMenu.js');
             const skipConfirm = !!ev.shiftKey;
-            const ok = await confirmDialog('Delete Loot Group?', `Are you sure you want to delete "${group.name || group.id}"?`, { skipConfirm });
+            const title = game.i18n.localize('TOKEN_LOOT.Dialog.DeleteGroupTitle') || 'Delete Loot Group?';
+            const prompt = game.i18n.format("TOKEN_LOOT.Dialog.DeleteGroupPrompt", { name: group.name || group.id });
+            const ok = await confirmDialog(title, prompt, { skipConfirm });
             if (!ok) return;
             state.removeGroup(group.id);
             controller.removeGroupCard(group.id);
@@ -182,15 +187,10 @@ export class GroupRenderer {
     }
 
     /**
-     * Set up initial collapsed states
+     * Set up initial collapsed states for inner sections only
      */
-    static setupCollapseStates(card, group) {
+    static setupSectionCollapseStates(card, group) {
         const groupId = group.id;
-
-        const isGroupCollapsed = getCollapsedState(groupId, 'group');
-        if (isGroupCollapsed) {
-            card.classList.add('collapsed');
-        }
 
         const sections = card.querySelectorAll('.tl-section');
         sections.forEach(section => {
@@ -201,18 +201,10 @@ export class GroupRenderer {
     }
 
     /**
-     * Set up collapse behavior for group and sections
+     * Set up collapse behavior for inner sections only
      */
-    static setupCollapseBehavior(card, group) {
+    static setupSectionCollapseBehavior(card, group) {
         const groupId = group.id;
-
-        const cardHeader = card.querySelector('.tl-card-hdr');
-        cardHeader.addEventListener('click', (e) => {
-            if (e.target.closest('.tl-title') || e.target.closest('.tl-card-actions')) return;
-
-            card.classList.toggle('collapsed');
-            saveCollapsedState(groupId, 'group', card.classList.contains('collapsed'));
-        });
 
         const sections = card.querySelectorAll('.tl-section');
         sections.forEach(section => {

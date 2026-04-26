@@ -1,38 +1,38 @@
 <div class="tl-distribution-block" data-block-id="{{block.id}}" data-type="{{block.type}}">
 	<div class="tl-block-hdr">
 		<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
-		<input class="tl-block-name" value="{{block.name}}" placeholder="Block Name" />
+		<input class="tl-block-name" value="{{block.name}}" placeholder="{{localize 'TOKEN_LOOT.Block.BlockNamePlaceholder'}}" />
 		<div class="tl-distribution-buttons">
-			<button class="tl-btn tl-distribution-btn {{block.chanceActive}}" data-type="chance" title="Roll each item's chance independently">Chances</button>
-			<button class="tl-btn tl-distribution-btn {{block.pickActive}}" data-type="pick" title="Randomly select N items from this block">Pick N</button>
-			<button class="tl-btn tl-distribution-btn {{block.allActive}}" data-type="all" title="Grant every item in this block">All</button>
+			<button class="tl-btn tl-distribution-btn {{block.chanceActive}}" data-type="chance" title="{{localize 'TOKEN_LOOT.Block.ChancesTitle'}}">{{localize "TOKEN_LOOT.Block.Chances"}}</button>
+			<button class="tl-btn tl-distribution-btn {{block.pickActive}}" data-type="pick" title="{{localize 'TOKEN_LOOT.Block.PickNTitle'}}">{{localize "TOKEN_LOOT.Block.PickN"}}</button>
+			<button class="tl-btn tl-distribution-btn {{block.allActive}}" data-type="all" title="{{localize 'TOKEN_LOOT.Block.AllTitle'}}">{{localize "TOKEN_LOOT.Block.All"}}</button>
 		</div>
 		<div class="tl-block-io">
-			<button class="tl-btn tl-btn-sm tl-block-export" title="Download Block as JSON"><i class="fas fa-download"></i> Export</button>
-			<button class="tl-btn tl-btn-sm tl-block-import" title="Upload Block from JSON"><i class="fas fa-upload"></i> Import</button>
+			<button class="tl-btn tl-btn-sm tl-block-export" title="{{localize 'TOKEN_LOOT.Block.ExportTitle'}}"><i class="fas fa-download"></i> {{localize "TOKEN_LOOT.Block.Export"}}</button>
+			<button class="tl-btn tl-btn-sm tl-block-import" title="{{localize 'TOKEN_LOOT.Block.ImportTitle'}}"><i class="fas fa-upload"></i> {{localize "TOKEN_LOOT.Block.Import"}}</button>
 		</div>
 		<div class="tl-option-chips">
-			<button class="tl-btn tl-chip tl-chip-toggle tl-chip-auto {{block.autoEquipActive}}" data-chip="auto" title="Automatically equip granted items when possible">Auto-equip</button>
-			<button class="tl-btn tl-chip tl-chip-toggle tl-chip-dup {{block.allowDupActive}}" data-chip="dup" title="Allow the same item to be granted multiple times">Allow duplicates</button>
+			<button class="tl-btn tl-chip tl-chip-toggle tl-chip-auto {{block.autoEquipActive}}" data-chip="auto" title="{{localize 'TOKEN_LOOT.Block.AutoEquipTitle'}}">{{localize "TOKEN_LOOT.Block.AutoEquip"}}</button>
+			<button class="tl-btn tl-chip tl-chip-toggle tl-chip-dup {{block.allowDupActive}}" data-chip="dup" title="{{localize 'TOKEN_LOOT.Block.AllowDuplicatesTitle'}}">{{localize "TOKEN_LOOT.Block.AllowDuplicates"}}</button>
 		</div>
-		<button class="tl-btn tl-danger tl-block-delete" title="Remove Block"><i class="fas fa-trash"></i></button>
+		<button class="tl-btn tl-danger tl-block-delete" title="{{localize 'TOKEN_LOOT.Block.RemoveBlock'}}"><i class="fas fa-trash"></i></button>
 	</div>
 	<div class="tl-block-body">
 		<div class="tl-distribution-config">
 			<div class="tl-config-pick" {{block.pickDisplay}}>
-				<label>Pick</label>
+				<label>{{localize "TOKEN_LOOT.Block.Pick"}}</label>
 				<input class="tl-num tl-distribution-count" type="number" min="1" value="{{block.count}}" />
 
 			</div>
 			<div class="tl-config-chance" {{block.chanceDisplay}}>
 				<div class="tl-option-chips">
-					<button class="tl-btn tl-chip tl-chip-toggle tl-chip-force {{block.forceQtyActive}}" data-chip="force" title="Set a specific number of items to roll for (uses Min/Max Rolls)">Number of Items</button>
+					<button class="tl-btn tl-chip tl-chip-toggle tl-chip-force {{block.forceQtyActive}}" data-chip="force" title="{{localize 'TOKEN_LOOT.Block.NumberOfItemsTitle'}}">{{localize "TOKEN_LOOT.Block.NumberOfItems"}}</button>
 				</div>
 				<div class="tl-chance-bounds" {{block.chanceBoundsDisplay}}>
-					<label>Min Rolls</label>
-					<input class="tl-num tl-ch-min" type="number" min="0" value="{{block.chanceMin}}" title="Minimum number of items to roll for" />
-					<label>Max Rolls</label>
-					<input class="tl-num tl-ch-max" type="number" min="0" value="{{block.chanceMax}}" title="Maximum number of items to roll for" />
+					<label>{{localize "TOKEN_LOOT.Block.MinRolls"}}</label>
+					<input class="tl-num tl-ch-min" type="number" min="0" value="{{block.chanceMin}}" title="{{localize 'TOKEN_LOOT.Block.MinRollsTitle'}}" />
+					<label>{{localize "TOKEN_LOOT.Block.MaxRolls"}}</label>
+					<input class="tl-num tl-ch-max" type="number" min="0" value="{{block.chanceMax}}" title="{{localize 'TOKEN_LOOT.Block.MaxRollsTitle'}}" />
 				</div>
 			</div>
 		</div>

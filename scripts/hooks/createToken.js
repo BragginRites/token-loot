@@ -79,108 +79,39 @@ async function postGMChatLog(actor, group, grantLog) {
         if (!enabled) return;
     } catch { }
     const lines = [];
-    lines.push(`<strong>${actor.name}</strong> received loot from group <em>${group.name}</em>:`);
+    const receivedMsg = game.i18n.format("TOKEN_LOOT.Chat.LootReceived", {
+        actorName: `<strong>${actor.name}</strong>`,
+        groupName: `<em>${group.name}</em>`
+    });
+    lines.push(receivedMsg);
     let hasLoot = false;
     if (Object.keys(grantLog.currency).length) {
         const cur = Object.entries(grantLog.currency)
             .filter(([k, v]) => v > 0)
             .map(([k, v]) => `${v} ${k.toUpperCase()}`)
             .join(', ');
-        if (cur) { lines.push(`💰 Currency: ${cur}`); hasLoot = true; }
+        if (cur) {
+            const currencyLabel = game.i18n.localize("TOKEN_LOOT.Chat.Currency");
+            lines.push(`💰 ${currencyLabel} ${cur}`);
+            hasLoot = true;
+        }
     }
     if (grantLog.items.length) {
-        lines.push(`📦 Items:`);
+        const itemsLabel = game.i18n.localize("TOKEN_LOOT.Chat.Items");
+        lines.push(`📦 ${itemsLabel}`);
         for (const it of grantLog.items) lines.push(`&nbsp;&nbsp;• ${it.qty}x ${it.name}`);
         hasLoot = true;
     }
-    if (!hasLoot) lines.push(`<em>No items or currency granted.</em>`);
+    if (!hasLoot) {
+        const noLootMsg = game.i18n.localize("TOKEN_LOOT.Chat.NoLoot");
+        lines.push(`<em>${noLootMsg}</em>`);
+    }
     const content = `<div class="token-loot-log">${lines.map(l => `<div>${l}</div>`).join('')}</div>`;
     try {
         await ChatMessage.create({ content, whisper: ChatMessage.getWhisperRecipients('GM').map(u => u.id) });
     } catch (e) {
         console.warn(`${MODULE_ID} | Failed to create chat message`, e);
     }
-}
-
-async function grantItems(actor, rows, grantLog) {
-    const toCreate = [];
-    for (const row of rows ?? []) {
-        if (!row?.uuid) continue;
-        const qty = randomIntegerInclusive(row.qtyMin ?? 1, row.qtyMax ?? 1);
-        try {
-            const doc = await fromUuid(row.uuid);
-            if (!doc) continue;
-            let data = doc.toObject();
-            if (data._id) delete data._id;
-            data.system = data.system || {};
-            data.system.quantity = qty;
-            data.flags = data.flags || {};
-            data.flags[MODULE_ID] = { granted: true, groupId: row.groupId ?? null };
-
-            // If the granted item is a spell, let the system create the proper scroll (dnd5e)
-            try {
-                if (String(data.type) === 'spell' && (game.system?.id === 'dnd5e')) {
-                    let scrollData = null;
-                    const ItemCls = (CONFIG && CONFIG.Item && CONFIG.Item.documentClass) ? CONFIG.Item.documentClass : null;
-                    try {
-                        if (ItemCls && typeof ItemCls.createScrollFromSpell === 'function') {
-                            const created = await ItemCls.createScrollFromSpell(doc);
-                            scrollData = created?.toObject ? created.toObject() : created;
-                        }
-                    } catch { }
-                    try {
-                        if (!scrollData && game?.dnd5e?.documents?.Item5e?.createScrollFromSpell) {
-                            const created = await game.dnd5e.documents.Item5e.createScrollFromSpell(doc);
-                            scrollData = created?.toObject ? created.toObject() : created;
-                        }
-                    } catch { }
-                    if (scrollData) {
-                        if (scrollData._id) delete scrollData._id;
-                        scrollData.system = scrollData.system || {};
-                        scrollData.system.quantity = qty;
-                        scrollData.flags = Object.assign(scrollData.flags || {}, { [MODULE_ID]: { granted: true, groupId: row.groupId ?? null, sourceSpellUuid: row.uuid } });
-                        data = scrollData;
-                    }
-                }
-            } catch { }
-            // Auto-equip where appropriate (honor per-row autoEquip flag propagated from block)
-            try {
-                const t = String(data.type || '').toLowerCase();
-                const shouldEquip = !!row.autoEquip;
-                if (shouldEquip && game.system?.id === 'dnd5e') {
-                    if (t === 'weapon' || t === 'armor' || t === 'equipment') {
-                        data.system = data.system || {};
-                        if (typeof data.system.equipped === 'boolean') data.system.equipped = true;
-                    }
-                } else if (shouldEquip && typeof data.system?.equipped === 'boolean') {
-                    // Generic fallback for systems that use a boolean equipped field
-                    data.system.equipped = true;
-                }
-            } catch { }
-            toCreate.push(data);
-            grantLog.items.push({ name: data.name, qty });
-        } catch { }
-    }
-    if (toCreate.length) {
-        const perItemDelay = Number(game.settings.get(MODULE_ID, 'awardItemStaggerMs') || 0);
-        if (perItemDelay > 0) {
-            // Create items sequentially with stagger
-            for (const data of toCreate) {
-                await actor.createEmbeddedDocuments('Item', [data]);
-                await new Promise(r => setTimeout(r, perItemDelay));
-            }
-        } else {
-            await actor.createEmbeddedDocuments('Item', toCreate);
-        }
-    }
-}
-
-function randomIntegerInclusive(min, max) {
-    const a = Number.isFinite(min) ? min : 0;
-    const b = Number.isFinite(max) ? max : 0;
-    const lo = Math.min(a, b);
-    const hi = Math.max(a, b);
-    return Math.floor(Math.random() * (hi - lo + 1)) + lo;
 }
 
 

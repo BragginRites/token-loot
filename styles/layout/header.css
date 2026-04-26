@@ -1,36 +1,18 @@
 /* ========================================
    HEADER & NAVIGATION
+   ApplicationV2 provides the window title bar,
+   drag handle, and close button natively.
+   These styles target content inside the window.
    ======================================== */
 
-/* Header - Premium Look */
-#tl-group-manager .tl-hdr {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 16px 24px;
+/* Window header theming (Foundry's .window-header) */
+#tl-group-manager .window-header {
     background: linear-gradient(135deg, #151b26 0%, #121723 100%);
     border-bottom: 1px solid #2a2f3a;
-}
-
-/* Drag Handle */
-#tl-group-manager .tl-drag {
-    flex: 1;
-    cursor: move;
-    display: flex;
-    align-items: center;
-}
-
-#tl-group-manager .tl-title {
-    font-weight: 700;
-    font-size: 20px;
-    letter-spacing: 0.5px;
     color: #e8ecf1;
-    margin: 0;
-    flex: 1;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+/* Actions bar (search + buttons row) */
 #tl-group-manager .tl-actions {
     display: flex;
     align-items: center;
@@ -52,28 +34,6 @@
     border-color: #5e9eff;
     box-shadow: 0 0 0 2px rgba(94, 158, 255, 0.2);
     outline: none;
-}
-
-#tl-group-manager .tl-close {
-    appearance: none;
-    border: 1px solid #3a2626;
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #2a1717 0%, #1a1010 100%);
-    color: #ff6b6b;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#tl-group-manager .tl-close:hover {
-    background: linear-gradient(135deg, #3a2626 0%, #2a1717 100%);
-    border-color: #4a2f2f;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Main Content Area */

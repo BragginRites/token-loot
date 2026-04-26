@@ -50,4 +50,18 @@ export class SystemAdapter {
             await actor.update(updates);
         }
     }
+
+    /**
+     * Get the currency configuration for the current system.
+     * @returns {object} Key-label pairs for currency (e.g., { gp: 'GP', sp: 'SP' })
+     */
+    getCurrencyConfiguration() {
+        return {
+            pp: 'PP',
+            gp: 'GP',
+            ep: 'EP',
+            sp: 'SP',
+            cp: 'CP'
+        };
+    }
 }

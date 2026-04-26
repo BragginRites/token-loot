@@ -38,4 +38,17 @@ export class DnD5eAdapter extends SystemAdapter {
         }
         return null;
     }
+
+    /**
+     * @override
+     */
+    getCurrencyConfiguration() {
+        return {
+            pp: 'PP',
+            gp: 'GP',
+            ep: 'EP',
+            sp: 'SP',
+            cp: 'CP'
+        };
+    }
 }

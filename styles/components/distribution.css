@@ -24,9 +24,9 @@
 
 /* Block Header - Clean Top Section with Collapse Arrow */
 #tl-group-manager .tl-block-hdr {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto auto auto auto;
-    gap: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
     align-items: center;
     padding: 16px 20px;
     background: linear-gradient(135deg, #151b26 0%, #121723 100%);
@@ -60,6 +60,8 @@
 }
 
 #tl-group-manager .tl-block-name {
+    flex: 1;
+    min-width: 150px;
     padding: 10px 14px;
     border: 1px solid #3a4a5a;
     border-radius: 8px;

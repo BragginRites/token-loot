@@ -8,10 +8,25 @@ import { Pf1eAdapter } from '../adapters/Pf1eAdapter.js';
 import { Sf1eAdapter } from '../adapters/Sf1eAdapter.js';
 import { Sw5eAdapter } from '../adapters/Sw5eAdapter.js';
 import { SystemAdapter } from '../adapters/SystemAdapter.js';
+import { loadHandlebarsTemplates } from '../compat.js';
 
 export function setupInitHook() {
-    Hooks.once('init', () => {
+    Hooks.once('init', async () => {
         console.log(`${MODULE_ID} | Initializing`);
+
+        try {
+            await loadHandlebarsTemplates([
+                'modules/token-loot/templates/groupCard.html',
+                'modules/token-loot/templates/distributionBlock.html',
+                'modules/token-loot/templates/actorChip.html',
+                'modules/token-loot/templates/itemRow.html',
+                'modules/token-loot/templates/itemHeader.html',
+                'modules/token-loot/templates/batchItemDialog.html',
+                'modules/token-loot/templates/confirmDialog.html'
+            ]);
+        } catch (e) {
+            console.error(`${MODULE_ID} | Failed to preload templates`, e);
+        }
 
         // Adapter Factory
         let adapter;

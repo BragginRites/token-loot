@@ -25,7 +25,7 @@
 .tl-confirm-overlay {
     position: fixed;
     inset: 0;
-    z-index: 16;
+    z-index: 99999;
     background: transparent;
     display: flex;
     align-items: center;
@@ -81,4 +81,37 @@
 .tl-confirm-btn.tl-danger {
     background: #2a1717;
     border-color: #3a2626;
+}
+
+/* Icon Grid */
+.tl-icon-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.tl-icon-grid-item {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #161b28;
+    border: 1px solid #2a2f3a;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #9ca3af;
+    transition: all 0.2s;
+}
+
+.tl-icon-grid-item:hover {
+    background: #222a3f;
+    color: #e8ecf1;
+}
+
+.tl-icon-grid-item.active {
+    background: #2a3f2a;
+    border-color: #4a8c2a;
+    color: #4a8c2a;
 }

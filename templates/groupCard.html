@@ -1,19 +1,18 @@
 <div class="tl-card" data-gid="{{group.id}}">
 	<div class="tl-card-hdr">
-		<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
-		<input class="tl-title" data-gid="{{group.id}}" value="{{group.name}}" placeholder="Group Title" />
+		<input class="tl-title" data-gid="{{group.id}}" value="{{group.name}}" placeholder="{{localize 'TOKEN_LOOT.Card.GroupTitlePlaceholder'}}" />
 		<div class="tl-card-actions">
-			<button class="tl-btn tl-duplicate" title="Duplicate Group"><i class="fas fa-copy"></i></button>
-			<button class="tl-btn tl-danger tl-delete" title="Delete Group"><i class="fas fa-trash"></i></button>
+			<button class="tl-btn tl-duplicate" title="{{localize 'TOKEN_LOOT.Card.DuplicateGroup'}}"><i class="fas fa-copy"></i></button>
+			<button class="tl-btn tl-danger tl-delete" title="{{localize 'TOKEN_LOOT.Card.DeleteGroup'}}"><i class="fas fa-trash"></i></button>
 		</div>
 	</div>
 	<div class="tl-card-body">
 		<div class="tl-section" data-section="actors">
 			<div class="tl-section-header">
 				<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
-				<div class="tl-section-title">Actors</div>
+				<div class="tl-section-title">{{localize "TOKEN_LOOT.Card.Actors"}}</div>
 				<div class="tl-section-actions">
-					<button class="tl-btn tl-btn-sm tl-danger tl-clear-actors" title="Clear All Actors">Clear All</button>
+					<button class="tl-btn tl-btn-sm tl-danger tl-clear-actors" title="{{localize 'TOKEN_LOOT.Card.ClearAllActorsTitle'}}">{{localize "TOKEN_LOOT.Card.ClearAll"}}</button>
 				</div>
 			</div>
 			<div class="tl-section-content">
@@ -26,34 +25,20 @@
 		<div class="tl-section" data-section="currency">
 			<div class="tl-section-header">
 				<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
-				<div class="tl-section-title">Currency</div>
+				<div class="tl-section-title">{{localize "TOKEN_LOOT.Card.Currency"}}</div>
 				<div class="tl-section-actions">
-					<span class="tl-currency-hint">Examples: 0, 1d4, 10-50, 2d6*10</span>
+					<span class="tl-currency-hint">{{localize "TOKEN_LOOT.Card.CurrencyExamples"}}</span>
 				</div>
 			</div>
 			<div class="tl-section-content">
 				<div class="tl-currency">
 					<div class="tl-currency-compact">
+                        {{#each currencies}}
 						<div class="tl-currency-field">
-							<label>PP</label>
-							<input class="tl-currency-input tl-pp" type="text" value="{{group.currency.pp}}" />
+							<label>{{this.label}}</label>
+							<input class="tl-currency-input" data-key="{{this.key}}" type="text" value="{{this.value}}" />
 						</div>
-						<div class="tl-currency-field">
-							<label>GP</label>
-							<input class="tl-currency-input tl-gp" type="text" value="{{group.currency.gp}}" />
-						</div>
-						<div class="tl-currency-field">
-							<label>EP</label>
-							<input class="tl-currency-input tl-ep" type="text" value="{{group.currency.ep}}" />
-						</div>
-						<div class="tl-currency-field">
-							<label>SP</label>
-							<input class="tl-currency-input tl-sp" type="text" value="{{group.currency.sp}}" />
-						</div>
-						<div class="tl-currency-field">
-							<label>CP</label>
-							<input class="tl-currency-input tl-cp" type="text" value="{{group.currency.cp}}" />
-						</div>
+                        {{/each}}
 					</div>
 				</div>
 			</div>
@@ -62,9 +47,9 @@
 		<div class="tl-section" data-section="blocks">
 			<div class="tl-section-header">
 				<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
-				<div class="tl-section-title">Distribution Blocks</div>
+				<div class="tl-section-title">{{localize "TOKEN_LOOT.Card.DistributionBlocks"}}</div>
 				<div class="tl-section-actions">
-					<button class="tl-btn tl-btn-sm tl-add-block">Add Block</button>
+					<button class="tl-btn tl-btn-sm tl-add-block">{{localize "TOKEN_LOOT.Card.AddBlock"}}</button>
 				</div>
 			</div>
 			<div class="tl-section-content">

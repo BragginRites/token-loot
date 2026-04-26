@@ -21,24 +21,29 @@ export class Pf2eAdapter extends SystemAdapter {
                 itemData.system.equipped.handsHeld = 1; // Default to 1 hand?
             }
         }
+
     }
     /**
      * @override
      */
     async addCurrency(actor, currencyPayload) {
-        const validKeys = ['pp', 'gp', 'sp', 'cp'];
-        const updates = { system: { currency: foundry.utils.deepClone(actor.system.currency ?? {}) } };
-        let hasUpdates = false;
-
-        for (const [key, value] of Object.entries(currencyPayload)) {
-            if (validKeys.includes(key) && updates.system.currency[key] !== undefined) {
-                updates.system.currency[key] = (updates.system.currency[key] ?? 0) + (value ?? 0);
-                hasUpdates = true;
-            }
+        if (actor.inventory && typeof actor.inventory.addCoins === 'function') {
+            await actor.inventory.addCoins(currencyPayload);
+        } else {
+            // Fallback to default if inventory module isn't available (unlikely in modern PF2e)
+            super.addCurrency(actor, currencyPayload);
         }
+    }
 
-        if (hasUpdates) {
-            await actor.update(updates);
-        }
+    /**
+     * @override
+     */
+    getCurrencyConfiguration() {
+        return {
+            pp: 'PP',
+            gp: 'GP',
+            sp: 'SP',
+            cp: 'CP'
+        };
     }
 }

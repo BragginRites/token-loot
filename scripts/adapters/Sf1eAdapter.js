@@ -33,4 +33,14 @@ export class Sf1eAdapter extends SystemAdapter {
             await actor.update(updates);
         }
     }
+
+    /**
+     * @override
+     */
+    getCurrencyConfiguration() {
+        return {
+            credit: 'Credits',
+            upb: 'UPB'
+        };
+    }
 }

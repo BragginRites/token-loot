@@ -7,10 +7,13 @@
  * @param {() => void} onChange
  */
 export function bindCurrencyForm(root, group, onChange) {
-    ['pp', 'gp', 'ep', 'sp', 'cp'].forEach(curr => {
-        root.querySelector(`.tl-${curr}`)?.addEventListener('input', ev => {
+    root.querySelectorAll('.tl-currency-input').forEach(input => {
+        input.addEventListener('input', ev => {
+            const key = ev.currentTarget.dataset.key;
+            if (!key) return;
+
             if (!group.currency) group.currency = {};
-            group.currency[curr] = ev.currentTarget.value.trim() || '';
+            group.currency[key] = ev.currentTarget.value.trim() || '';
             onChange();
         });
     });

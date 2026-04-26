@@ -10,7 +10,6 @@ export function setupPreCreateTokenHook() {
     Hooks.on('preCreateToken', async (tokenDocument, data, options, userId) => {
         try {
             if (!game.user.isGM) return;
-            if (!game.user.isGM) return;
             // Always enabled for unlinked tokens now (V13 standard)
             // const enabled = !!game.settings.get(MODULE_ID, 'usePreCreateForUnlinked');
             // if (!enabled) return;

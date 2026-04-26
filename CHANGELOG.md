@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.0] - 2026-04-26
+### Master/Detail UI Redesign
+- **New Layout:** Migrated the Group Manager to a two-pane **Master/Detail** layout.
+  - Left sidebar for group navigation and search.
+  - Right detail panel for focused editing of group configurations.
+- **Group Customization:** Added new group metadata options via right-click context menu:
+  - **Custom Icons:** Choose from a curated grid of FontAwesome icons (skull, dragon, treasure, etc.) or provide a custom icon class with text field.
+  - **Custom Colors:** Assign colors to groups to help with visual categorization.
+
 ## [0.0.2] - 2025-12-17
 ### Architecture Refactor & V13 Support
 - **System Agnostic Core:** Refactored the entire codebase to use a `SystemAdapter` pattern.

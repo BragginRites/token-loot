@@ -29,4 +29,16 @@ export class Pf1eAdapter extends SystemAdapter {
             await actor.update(updates);
         }
     }
+
+    /**
+     * @override
+     */
+    getCurrencyConfiguration() {
+        return {
+            pp: 'PP',
+            gp: 'GP',
+            sp: 'SP',
+            cp: 'CP'
+        };
+    }
 }

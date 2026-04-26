@@ -11,7 +11,8 @@ import { loadTemplate } from '../services/TemplateLoader.js';
 export async function showBatchSettingsDialog(folderName, itemCount) {
     const overlay = document.createElement('div');
     overlay.className = 'tl-confirm-overlay';
-    overlay.innerHTML = await loadTemplate('batchItemDialog.html', { folderName, itemCount, includeSubfoldersChecked: '' });
+    const batchText = game.i18n.format("TOKEN_LOOT.Dialog.BatchAdd", { count: itemCount, folder: folderName });
+    overlay.innerHTML = await loadTemplate('batchItemDialog.html', { batchText, includeSubfoldersChecked: '' });
     document.body.appendChild(overlay);
     return new Promise(resolve => {
         const cleanup = (result) => { try { overlay.remove(); } catch {} resolve(result); };

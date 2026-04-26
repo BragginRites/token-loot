@@ -50,4 +50,13 @@ export class Sw5eAdapter extends SystemAdapter {
             await actor.update(updates);
         }
     }
+
+    /**
+     * @override
+     */
+    getCurrencyConfiguration() {
+        return {
+            gc: 'Credits'
+        };
+    }
 }

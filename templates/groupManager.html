@@ -1,14 +1,22 @@
 <div class="tl-panel">
-	<div class="tl-hdr" id="tl-drag">
-		<div class="tl-drag">
-			<h1 class="tl-title">Token Loot</h1>
+	<div class="tl-layout">
+		<!-- Left Sidebar: Group list -->
+		<div class="tl-sidebar">
+			<div class="tl-sidebar-header">
+				<input type="text" id="tl-search" class="tl-search" placeholder="{{localize 'TOKEN_LOOT.Manager.SearchGroups'}}" autocomplete="off">
+				<button id="tl-add" class="tl-btn tl-btn-icon tl-primary" type="button" title="{{localize 'TOKEN_LOOT.Manager.AddGroup'}}"><i class="fas fa-plus"></i></button>
+			</div>
+			<div id="tl-group-list" class="tl-group-list">
+				<!-- sidebar items injected here -->
+			</div>
 		</div>
-		<div class="tl-actions">
-			<input type="text" id="tl-search" class="tl-search" placeholder="Search groups..." autocomplete="off">
-			<button id="tl-collapse-all" class="tl-btn">Collapse All</button>
-			<button id="tl-add" class="tl-btn tl-primary">Add Loot Group</button>
-			<button id="tl-close" class="tl-btn">Close</button>
+
+		<!-- Right Detail: Selected group -->
+		<div id="tl-detail" class="tl-detail">
+			<div class="tl-detail-empty">
+				<i class="fas fa-treasure-chest tl-detail-empty-icon"></i>
+				<p>{{localize "TOKEN_LOOT.Manager.SelectGroupHint"}}</p>
+			</div>
 		</div>
 	</div>
-	<div id="tl-groups" class="tl-groups"></div>
 </div>
