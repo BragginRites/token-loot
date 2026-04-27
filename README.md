@@ -2,6 +2,7 @@
 
 A loot distribution system for Foundry VTT that automatically grants randomized loot to tokens when they're created on the canvas.
 
+<img width="1248" height="1159" alt="image" src="https://github.com/user-attachments/assets/20eface4-952c-4121-9a71-9f8800249fa8" />
 
 
 Coffee helps me stay up to 2am to write these modules. Thank you for the lack of sleep in advance!
