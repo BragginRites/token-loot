@@ -1,0 +1,302 @@
+/* ========================================
+   MODE BADGE & SMART FILTER CHIPS
+   ======================================== */
+
+/* ——— Mode Badge ——— */
+#tl-group-manager .tl-mode-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    margin: 0 0 8px 0;
+    background: rgba(10, 14, 20, 0.4);
+    border: 1px solid #2a2f3a;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #7a8590;
+}
+
+#tl-group-manager .tl-mode-badge i {
+    color: var(--tl-group-color, #4a8c2a);
+    font-size: 12px;
+}
+
+#tl-group-manager .tl-mode-badge-filtered {
+    border-color: rgba(139, 92, 246, 0.3);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+#tl-group-manager .tl-mode-badge-filtered i {
+    color: #a78bfa;
+}
+
+/* ——— Mode Choice Dialog ——— */
+.tl-mode-dialog {
+    width: fit-content;
+    min-width: 0;
+    max-width: min(92vw, 680px);
+}
+
+.tl-mode-dialog-body {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    justify-content: center;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px 0;
+}
+
+.tl-mode-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 24px 16px;
+    width: fit-content;
+    max-width: 28ch;
+    height: auto;
+    min-height: max-content;
+    border: 2px solid #2a2f3a;
+    border-radius: 10px;
+    background: rgba(10, 14, 20, 0.6);
+    color: #e8ecf1;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-align: center;
+}
+
+.tl-mode-overlay {
+    pointer-events: none;
+}
+
+.tl-mode-overlay .tl-mode-dialog {
+    pointer-events: auto;
+}
+
+@media (max-width: 560px) {
+    .tl-mode-dialog-body {
+        grid-template-columns: minmax(180px, 1fr);
+    }
+}
+
+.tl-mode-choice:hover {
+    border-color: var(--tl-group-color, #4a8c2a);
+    background: rgba(74, 140, 42, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.tl-mode-choice i {
+    font-size: 28px;
+    color: var(--tl-group-color, #4a8c2a);
+}
+
+.tl-mode-choice[data-mode="filtered"] i {
+    color: #a78bfa;
+}
+
+.tl-mode-choice[data-mode="filtered"]:hover {
+    border-color: #a78bfa;
+    background: rgba(139, 92, 246, 0.08);
+}
+
+.tl-mode-choice-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.tl-mode-choice-desc {
+    font-size: 11px;
+    color: #7a8590;
+    line-height: 1.4;
+    white-space: normal;
+    overflow-wrap: normal;
+}
+
+/* ——— Filter Chip List ——— */
+#tl-group-manager .tl-filter-help {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    border-radius: 8px;
+    background: rgba(139, 92, 246, 0.05);
+    color: #a8b0bb;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+#tl-group-manager .tl-filter-empty {
+    color: #7a8590;
+    font-style: italic;
+    font-size: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    text-align: center;
+    border: 1px dashed #2a2f3a;
+    border-radius: 8px;
+}
+
+#tl-group-manager .tl-filter-empty.tl-hidden {
+    display: none;
+}
+
+#tl-group-manager .tl-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 40px;
+}
+
+/* ——— Individual Filter Chip ——— */
+#tl-group-manager .tl-filter-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: linear-gradient(135deg, #161b28 0%, #121723 100%);
+    border: 1px solid #2a2f3a;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    flex-wrap: wrap;
+}
+
+#tl-group-manager .tl-filter-chip.tl-filter-incomplete {
+    border-color: rgba(245, 158, 11, 0.45);
+    background: linear-gradient(135deg, rgba(78, 52, 18, 0.72) 0%, rgba(38, 30, 20, 0.95) 100%);
+}
+
+#tl-group-manager .tl-filter-chip:hover {
+    border-color: #3a4a5a;
+    background: linear-gradient(135deg, #1a2332 0%, #151b26 100%);
+}
+
+#tl-group-manager .tl-filter-chip.tl-filter-incomplete:hover {
+    border-color: rgba(245, 158, 11, 0.65);
+    background: linear-gradient(135deg, rgba(88, 58, 20, 0.78) 0%, rgba(44, 34, 23, 0.98) 100%);
+}
+
+/* Chip selects and inputs */
+#tl-group-manager .tl-filter-chip select,
+#tl-group-manager .tl-filter-chip input {
+    padding: 5px 8px;
+    border: 1px solid #3a4a5a;
+    border-radius: 5px;
+    background: #0a0e14;
+    color: #e8ecf1;
+    font-size: 12px;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+#tl-group-manager .tl-filter-chip select:focus,
+#tl-group-manager .tl-filter-chip input:focus {
+    border-color: var(--tl-group-color, #4a8c2a);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(74, 140, 42, 0.15);
+}
+
+#tl-group-manager .tl-filter-chip select {
+    cursor: pointer;
+    min-width: 120px;
+}
+
+#tl-group-manager .tl-filter-chip .tl-filter-property {
+    min-width: 130px;
+}
+
+#tl-group-manager .tl-filter-chip .tl-filter-operator {
+    min-width: 90px;
+}
+
+#tl-group-manager .tl-filter-chip .tl-filter-value {
+    flex: 1;
+    min-width: 80px;
+}
+
+#tl-group-manager .tl-filter-chip .tl-filter-value-number {
+    width: 60px;
+    min-width: 50px;
+    text-align: center;
+}
+
+#tl-group-manager .tl-filter-chip .tl-filter-between-sep {
+    color: #7a8590;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 2px;
+}
+
+#tl-group-manager .tl-filter-chip .tl-filter-status {
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(74, 140, 42, 0.12);
+    border: 1px solid rgba(74, 140, 42, 0.28);
+    color: #9bd47c;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+#tl-group-manager .tl-filter-chip.tl-filter-incomplete .tl-filter-status {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.32);
+    color: #fbbf24;
+}
+
+/* Custom path input */
+#tl-group-manager .tl-filter-chip .tl-filter-custom-path {
+    flex: 1;
+    min-width: 140px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+}
+
+/* Delete filter button */
+#tl-group-manager .tl-filter-chip .tl-filter-delete {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: #7a8590;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+#tl-group-manager .tl-filter-chip .tl-filter-delete:hover {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+/* ——— Add Filter Button ——— */
+#tl-group-manager .tl-add-filter {
+    margin-top: 10px;
+    border-style: dashed;
+    border-color: #3a4a5a;
+    background: transparent;
+    color: #7a8590;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    transition: all 0.2s ease;
+}
+
+#tl-group-manager .tl-add-filter:hover {
+    border-color: var(--tl-group-color, #4a8c2a);
+    color: var(--tl-group-color, #4a8c2a);
+    background: rgba(74, 140, 42, 0.05);
+}

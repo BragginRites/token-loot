@@ -25,8 +25,9 @@ export async function evaluateCurrencyExpression(expr) {
  * Merge currency increments into actorData for preCreateToken
  * @param {object} actorData - The actorData object from preCreateToken
  * @param {Record<string,string|number>} increments - Currency expressions
+ * @param {any} [grantLog]
  */
-export async function mergeCurrency(actorData, increments) {
+export async function mergeCurrency(actorData, increments, grantLog = null) {
     actorData.system = actorData.system || {};
     actorData.system.currency = actorData.system.currency || {};
 
@@ -35,6 +36,7 @@ export async function mergeCurrency(actorData, increments) {
         const val = await evaluateCurrencyExpression(expr);
         if (val > 0) {
             actorData.system.currency[key] = (actorData.system.currency[key] ?? 0) + val;
+            if (grantLog) grantLog.currency[key] = (grantLog.currency[key] ?? 0) + val;
         }
     }
 }

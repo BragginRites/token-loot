@@ -328,6 +328,21 @@ export class BlockEventHandlers {
      */
     static setupItemRowEvents(itemsRoot, block, autoSave) {
         itemsRoot.addEventListener('click', async (ev) => {
+            const openTarget = ev.target.closest('.tl-item-img, .tl-item-name');
+            if (openTarget) {
+                const rowEl = ev.target.closest('.tl-item-row');
+                const uuid = rowEl?.getAttribute('data-uuid');
+                if (!uuid) return;
+                try {
+                    const doc = await fromUuid(uuid);
+                    if (!doc) return;
+                    doc.sheet?.render(true);
+                } catch (e) {
+                    console.warn(`${MODULE_ID} | Failed to open item sheet`, e);
+                }
+                return;
+            }
+
             const del = ev.target.closest('.tl-item-delete');
             if (!del) return;
             const rowEl = ev.target.closest('.tl-item-row');

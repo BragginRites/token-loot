@@ -57,24 +57,33 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
             });
         }
 
+        this._setupLinkedNpcOverrideFooter();
+
         // Add group button
         const addBtn = this.element.querySelector('#tl-add');
         if (addBtn) {
             addBtn.addEventListener('click', async () => {
+                // Show mode choice dialog
+                const mode = await this._showModeChoiceDialog();
+                if (!mode) return; // cancelled
+
                 const baseTitle = game.i18n.localize('TOKEN_LOOT.Manager.NewGroupDefault') || 'New Loot Group';
                 const id = uniqueGroupId(this.groupState.getRules(), slugify(baseTitle) || 'group');
-                this.groupState.addGroup(id, { id, name: baseTitle, actorUUIDs: [], currency: {}, distributionBlocks: [] });
+                const groupData = {
+                    id,
+                    name: baseTitle,
+                    mode,
+                    actorUUIDs: [],
+                    filters: [],
+                    currency: {},
+                    distributionBlocks: []
+                };
+                this.groupState.addGroup(id, groupData);
                 this.autoSave.save();
 
                 // Add sidebar entry and select it
                 this._addSidebarItem(id);
                 this.selectGroup(id);
-
-                // Focus the title input in the detail pane
-                requestAnimationFrame(() => {
-                    const input = this.detailEl.querySelector(`.tl-title[data-gid="${id}"]`);
-                    if (input) { input.focus(); input.select?.(); }
-                });
             });
         }
 
@@ -85,7 +94,7 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
 
     async _buildSidebar() {
         this.sidebarListEl.innerHTML = '';
-        const gids = Object.keys(this.groupState.getGroups());
+        const gids = this.groupState.getOrderedGroupIds();
 
         if (gids.length === 0) {
             this._showSidebarEmpty();
@@ -114,36 +123,49 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
         item.className = 'tl-sidebar-item';
         item.dataset.gid = gid;
 
-        const actorCount = group.actorUUIDs?.length || 0;
-        const blockCount = group.distributionBlocks?.length || 0;
         const icon = group.icon || 'fas fa-users';
         const color = group.color || '#e8ecf1';
+        const metaParts = this._buildMetaParts(group);
 
         item.style.setProperty('--tl-group-color', color);
+        item.draggable = true;
         item.innerHTML = `
             <div class="tl-sidebar-item-icon" style="color: ${color}"><i class="${icon}"></i></div>
             <div class="tl-sidebar-item-info">
                 <div class="tl-sidebar-item-name">${this._escapeHtml(group.name || 'Untitled')}</div>
-                <div class="tl-sidebar-item-meta">${actorCount} actor${actorCount !== 1 ? 's' : ''} · ${blockCount} block${blockCount !== 1 ? 's' : ''}</div>
+                <div class="tl-sidebar-item-meta">${metaParts.join(' · ')}</div>
+            </div>
+            <div class="tl-sidebar-item-actions">
+                <button class="tl-sidebar-action tl-sidebar-duplicate" type="button" title="${game.i18n.localize('TOKEN_LOOT.Card.DuplicateGroup') || 'Duplicate Group'}">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button class="tl-sidebar-action tl-sidebar-delete" type="button" title="${game.i18n.localize('TOKEN_LOOT.Card.DeleteGroup') || 'Delete Group'}">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         `;
 
         item.addEventListener('click', () => this.selectGroup(gid));
+        this._setupSidebarDragEvents(item, gid);
+        item.querySelector('.tl-sidebar-duplicate')?.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            await this._duplicateGroup(gid);
+        });
+        item.querySelector('.tl-sidebar-delete')?.addEventListener('click', async (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            await this._deleteGroup(gid, { skipConfirm: !!ev.shiftKey });
+        });
         item.addEventListener('contextmenu', async (ev) => {
             ev.preventDefault();
             ev.stopPropagation();
-            const { openGroupSettingsDialog } = await import('./components/ContextMenu.js');
-            const updated = await openGroupSettingsDialog(group);
-            if (updated) {
-                this.autoSave.save();
-                this.refreshSidebar(gid);
-                // Also update the title input and detail container color if it's currently selected
-                if (this.selectedGroupId === gid) {
-                    const titleInput = this.detailEl.querySelector('.tl-title');
-                    if (titleInput) titleInput.value = group.name;
-                    this.detailEl.style.setProperty('--tl-group-color', group.color || '#e8ecf1');
-                }
-            }
+            await this._openGroupSettings(gid);
+        });
+        item.addEventListener('dblclick', async (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            await this._openGroupSettings(gid);
         });
         this.sidebarListEl.appendChild(item);
     }
@@ -159,10 +181,9 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
         const group = this.groupState.getGroup(gid);
         if (!group) return;
 
-        const actorCount = group.actorUUIDs?.length || 0;
-        const blockCount = group.distributionBlocks?.length || 0;
         const icon = group.icon || 'fas fa-users';
         const color = group.color || '#e8ecf1';
+        const metaParts = this._buildMetaParts(group);
         
         item.style.setProperty('--tl-group-color', color);
         const iconEl = item.querySelector('.tl-sidebar-item-icon');
@@ -171,7 +192,7 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
             iconEl.innerHTML = `<i class="${icon}"></i>`;
         }
         item.querySelector('.tl-sidebar-item-name').textContent = group.name || 'Untitled';
-        item.querySelector('.tl-sidebar-item-meta').textContent = `${actorCount} actor${actorCount !== 1 ? 's' : ''} · ${blockCount} block${blockCount !== 1 ? 's' : ''}`;
+        item.querySelector('.tl-sidebar-item-meta').textContent = metaParts.join(' · ');
     }
 
     _removeSidebarItem(gid) {
@@ -222,7 +243,8 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
 
     /** Called after a group card is appended (e.g., duplicate) */
     async appendGroupCard(gid) {
-        this._addSidebarItem(gid);
+        await this._buildSidebar();
+        this.applySearchFilter();
         this.selectGroup(gid);
     }
 
@@ -286,10 +308,205 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
 
     /* ——— Utilities ——— */
 
+    _buildMetaParts(group) {
+        const mode = group.mode || 'actors';
+        const blockCount = group.distributionBlocks?.length || 0;
+        const parts = [];
+
+        if (mode === 'actors') {
+            const actorCount = group.actorUUIDs?.length || 0;
+            parts.push(`${actorCount} actor${actorCount !== 1 ? 's' : ''}`);
+        } else {
+            const filterCount = group.filters?.length || 0;
+            parts.push(`${filterCount} filter${filterCount !== 1 ? 's' : ''}`);
+        }
+        parts.push(`${blockCount} block${blockCount !== 1 ? 's' : ''}`);
+        return parts;
+    }
+
+    _setupLinkedNpcOverrideFooter() {
+        const input = this.element.querySelector('#tl-linked-npc-override');
+        if (!input) return;
+
+        const renderState = () => {
+            const enabled = !!game.settings.get('token-loot', 'allowLinkedNpcOverride');
+            input.checked = enabled;
+        };
+
+        renderState();
+        input.addEventListener('change', async () => {
+            await game.settings.set('token-loot', 'allowLinkedNpcOverride', !!input.checked);
+            renderState();
+        });
+    }
+
+    _setupSidebarDragEvents(item, gid) {
+        item.addEventListener('dragstart', ev => {
+            if (ev.target.closest('.tl-sidebar-action')) {
+                ev.preventDefault();
+                return;
+            }
+
+            this.draggedGroupId = gid;
+            item.classList.add('tl-dragging');
+            ev.dataTransfer.effectAllowed = 'move';
+            ev.dataTransfer.setData('text/plain', gid);
+        });
+
+        item.addEventListener('dragover', ev => {
+            const draggedId = this.draggedGroupId || ev.dataTransfer.getData('text/plain');
+            if (!draggedId || draggedId === gid) return;
+
+            ev.preventDefault();
+            ev.dataTransfer.dropEffect = 'move';
+            this._clearSidebarDropTargets();
+            item.classList.add(this._getDropPosition(ev, item) === 'after' ? 'tl-drop-after' : 'tl-drop-before');
+        });
+
+        item.addEventListener('dragleave', ev => {
+            if (item.contains(ev.relatedTarget)) return;
+            item.classList.remove('tl-drop-before', 'tl-drop-after');
+        });
+
+        item.addEventListener('drop', async ev => {
+            ev.preventDefault();
+            const draggedId = this.draggedGroupId || ev.dataTransfer.getData('text/plain');
+            const position = this._getDropPosition(ev, item);
+            this._clearSidebarDropTargets();
+            if (!draggedId || draggedId === gid) return;
+
+            const moved = this.groupState.moveGroup(draggedId, gid, position);
+            if (!moved) return;
+
+            this.draggedGroupId = null;
+            this.autoSave.save();
+            await this._buildSidebar();
+            this.applySearchFilter();
+            if (this.selectedGroupId) {
+                const selected = this.sidebarListEl.querySelector(`.tl-sidebar-item[data-gid="${this.selectedGroupId}"]`);
+                selected?.classList.add('active');
+            }
+        });
+
+        item.addEventListener('dragend', () => {
+            this.draggedGroupId = null;
+            this.sidebarListEl.querySelectorAll('.tl-sidebar-item').forEach(el => {
+                el.classList.remove('tl-dragging', 'tl-drop-before', 'tl-drop-after');
+            });
+        });
+    }
+
+    _getDropPosition(ev, item) {
+        const rect = item.getBoundingClientRect();
+        return ev.clientY > rect.top + (rect.height / 2) ? 'after' : 'before';
+    }
+
+    _clearSidebarDropTargets() {
+        this.sidebarListEl.querySelectorAll('.tl-sidebar-item').forEach(el => {
+            el.classList.remove('tl-drop-before', 'tl-drop-after');
+        });
+    }
+
+    _showModeChoiceDialog() {
+        return new Promise(resolve => {
+            const overlay = document.createElement('div');
+            overlay.className = 'tl-confirm-overlay tl-mode-overlay';
+
+            overlay.innerHTML = `
+                <div class="tl-confirm-dialog tl-mode-dialog">
+                    <div class="tl-confirm-header">${game.i18n.localize('TOKEN_LOOT.Manager.ChooseMode') || 'Choose Group Type'}</div>
+                    <div class="tl-mode-dialog-body">
+                        <button class="tl-mode-choice" data-mode="actors">
+                            <i class="fas fa-user"></i>
+                            <span class="tl-mode-choice-title">${game.i18n.localize('TOKEN_LOOT.Card.ModeActors') || 'Individual Actors'}</span>
+                            <span class="tl-mode-choice-desc">${game.i18n.localize('TOKEN_LOOT.Manager.ModeActorsDesc') || 'Drag & drop specific actors into this group.'}</span>
+                        </button>
+                        <button class="tl-mode-choice" data-mode="filtered">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            <span class="tl-mode-choice-title">${game.i18n.localize('TOKEN_LOOT.Card.ModeFiltered') || 'Smart Filters'}</span>
+                            <span class="tl-mode-choice-desc">${game.i18n.localize('TOKEN_LOOT.Manager.ModeFilteredDesc') || 'Match actors dynamically using rules (type, CR, etc).'}</span>
+                        </button>
+                    </div>
+                    <div class="tl-confirm-actions">
+                        <button class="tl-confirm-btn tl-confirm-cancel">${game.i18n.localize('Cancel') || 'Cancel'}</button>
+                    </div>
+                </div>
+            `;
+
+            function cleanup(result) {
+                try { overlay.remove(); } catch {}
+                resolve(result);
+            }
+
+            overlay.querySelectorAll('.tl-mode-choice').forEach(btn => {
+                btn.addEventListener('click', () => cleanup(btn.dataset.mode));
+            });
+            overlay.querySelector('.tl-confirm-cancel')?.addEventListener('click', () => cleanup(null));
+
+            document.body.appendChild(overlay);
+        });
+    }
+
     _escapeHtml(str) {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+
+    async _duplicateGroup(gid) {
+        const originalGroup = this.groupState.getGroup(gid);
+        if (!originalGroup) return;
+        const baseTitle = game.i18n.format("TOKEN_LOOT.Card.DuplicateGroupTitle", { name: originalGroup.name });
+        const id = uniqueGroupId(this.groupState.getRules(), slugify(baseTitle) || 'group');
+
+        const duplicatedGroup = {
+            ...structuredClone(originalGroup),
+            id,
+            name: baseTitle
+        };
+
+        if (duplicatedGroup.distributionBlocks) {
+            duplicatedGroup.distributionBlocks = duplicatedGroup.distributionBlocks.map(block => ({
+                ...block,
+                id: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+            }));
+        }
+
+        this.groupState.addGroup(id, duplicatedGroup);
+        this.groupState.moveGroup(id, gid, 'after');
+        await this.appendGroupCard(id);
+        this.autoSave.save();
+    }
+
+    async _deleteGroup(gid, { skipConfirm = false } = {}) {
+        const group = this.groupState.getGroup(gid);
+        if (!group) return;
+
+        const { confirmDialog } = await import('./components/ContextMenu.js');
+        const title = game.i18n.localize('TOKEN_LOOT.Dialog.DeleteGroupTitle') || 'Delete Loot Group?';
+        const prompt = game.i18n.format("TOKEN_LOOT.Dialog.DeleteGroupPrompt", { name: group.name || group.id });
+        const ok = await confirmDialog(title, prompt, { skipConfirm });
+        if (!ok) return;
+
+        this.groupState.removeGroup(gid);
+        this.removeGroupCard(gid);
+        this.autoSave.save();
+    }
+
+    async _openGroupSettings(gid) {
+        const group = this.groupState.getGroup(gid);
+        if (!group) return;
+        const { openGroupSettingsDialog } = await import('./components/ContextMenu.js');
+        const updated = await openGroupSettingsDialog(group);
+        if (!updated) return;
+
+        this.autoSave.save();
+        this.refreshSidebar(gid);
+        if (this.selectedGroupId === gid) {
+            const titleEl = this.detailEl.querySelector('.tl-title');
+            if (titleEl) titleEl.textContent = group.name;
+            this.detailEl.style.setProperty('--tl-group-color', group.color || '#e8ecf1');
+        }
     }
 }
 

@@ -1,4 +1,17 @@
-# Changelog
+## [1.1.0] - 2026-04-27
+### Smart Grouping & Matching
+- Introduced two group types: **Individual Actors** and **Smart Filters**.
+- Smart Filters can match actors dynamically by details like name, creature type, size, CR, and more.
+- Group matching now applies all relevant groups for an actor, so overlapping rules can both grant loot.
+
+### Group Manager Improvements
+- Added quick sidebar actions for duplicate/delete and support for drag-and-drop group reordering.
+- Added a persistent **Linked NPC Override** toggle in the sidebar footer.
+- Added double-click group editing and improved mode selection dialog behavior/layout.
+
+### Item List UX
+- Clicking an item icon or name now opens that item sheet for quick viewing.
+- Added clearer hover/click affordances and sidebar readability/layout polish.
 
 ## [1.0.0] - 2026-04-26
 ### Master/Detail UI Redesign

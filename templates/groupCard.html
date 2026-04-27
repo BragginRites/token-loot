@@ -1,13 +1,13 @@
-<div class="tl-card" data-gid="{{group.id}}">
+<div class="tl-card" data-gid="{{group.id}}" data-mode="{{group.mode}}">
 	<div class="tl-card-hdr">
-		<input class="tl-title" data-gid="{{group.id}}" value="{{group.name}}" placeholder="{{localize 'TOKEN_LOOT.Card.GroupTitlePlaceholder'}}" />
-		<div class="tl-card-actions">
-			<button class="tl-btn tl-duplicate" title="{{localize 'TOKEN_LOOT.Card.DuplicateGroup'}}"><i class="fas fa-copy"></i></button>
-			<button class="tl-btn tl-danger tl-delete" title="{{localize 'TOKEN_LOOT.Card.DeleteGroup'}}"><i class="fas fa-trash"></i></button>
-		</div>
+		<div class="tl-title" data-gid="{{group.id}}">{{group.name}}</div>
 	</div>
 	<div class="tl-card-body">
-		<div class="tl-section" data-section="actors">
+		{{!-- Mode badge injected by JS --}}
+		<div class="tl-mode-badge"></div>
+
+		{{!-- ACTORS SECTION (shown/hidden by JS based on group.mode) --}}
+		<div class="tl-section tl-mode-actors" data-section="actors">
 			<div class="tl-section-header">
 				<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
 				<div class="tl-section-title">{{localize "TOKEN_LOOT.Card.Actors"}}</div>
@@ -19,6 +19,22 @@
 				<div class="tl-drop tl-actors" data-gid="{{group.id}}">
 					<!-- actor chips injected here -->
 				</div>
+			</div>
+		</div>
+
+		{{!-- FILTERS SECTION (shown/hidden by JS based on group.mode) --}}
+		<div class="tl-section tl-mode-filtered" data-section="filters">
+			<div class="tl-section-header">
+				<div class="tl-collapse-arrow"><i class="fas fa-chevron-down"></i></div>
+				<div class="tl-section-title">{{localize "TOKEN_LOOT.Card.SmartFilters"}}</div>
+			</div>
+			<div class="tl-section-content">
+				<div class="tl-filter-help">{{localize "TOKEN_LOOT.Card.SmartFiltersHint"}}</div>
+				<div class="tl-filter-empty">{{localize "TOKEN_LOOT.Card.FiltersEmpty"}}</div>
+				<div class="tl-filters" data-gid="{{group.id}}">
+					<!-- filter chips injected here -->
+				</div>
+				<button class="tl-btn tl-btn-sm tl-add-filter" type="button"><i class="fas fa-plus"></i> {{localize "TOKEN_LOOT.Card.AddFilter"}}</button>
 			</div>
 		</div>
 		

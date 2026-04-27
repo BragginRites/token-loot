@@ -26,6 +26,11 @@ export class GroupManagerState {
         return this.rules.groups || {};
     }
 
+    getOrderedGroupIds() {
+        this._normalizeGroupOrder();
+        return [...this.rules.groupOrder];
+    }
+
     /**
      * Get a specific group by ID
      * @param {string} groupId - The group ID
@@ -43,6 +48,10 @@ export class GroupManagerState {
     addGroup(groupId, groupData) {
         this.rules.groups = this.rules.groups || {};
         this.rules.groups[groupId] = groupData;
+        this._normalizeGroupOrder();
+        if (!this.rules.groupOrder.includes(groupId)) {
+            this.rules.groupOrder.push(groupId);
+        }
     }
 
     /**
@@ -53,6 +62,24 @@ export class GroupManagerState {
         if (this.rules.groups?.[groupId]) {
             delete this.rules.groups[groupId];
         }
+        this._normalizeGroupOrder();
+    }
+
+    setGroupOrder(groupIds) {
+        this.rules.groupOrder = Array.isArray(groupIds) ? [...groupIds] : [];
+        this._normalizeGroupOrder();
+    }
+
+    moveGroup(draggedId, targetId, position = 'before') {
+        if (!draggedId || !targetId || draggedId === targetId) return false;
+        const order = this.getOrderedGroupIds().filter(gid => gid !== draggedId);
+        const targetIndex = order.indexOf(targetId);
+        if (targetIndex === -1) return false;
+
+        const insertAt = position === 'after' ? targetIndex + 1 : targetIndex;
+        order.splice(insertAt, 0, draggedId);
+        this.setGroupOrder(order);
+        return true;
     }
 
     /**
@@ -80,5 +107,26 @@ export class GroupManagerState {
      */
     reload() {
         this.rules = structuredClone(getWorldRuleSet());
+        this._normalizeGroupOrder();
+    }
+
+    _normalizeGroupOrder() {
+        this.rules.groups = this.rules.groups || {};
+        const groups = this.rules.groups;
+        const seen = new Set();
+        const normalized = [];
+
+        for (const gid of this.rules.groupOrder || []) {
+            if (!groups[gid] || seen.has(gid)) continue;
+            seen.add(gid);
+            normalized.push(gid);
+        }
+
+        for (const gid of Object.keys(groups)) {
+            if (seen.has(gid)) continue;
+            normalized.push(gid);
+        }
+
+        this.rules.groupOrder = normalized;
     }
 }

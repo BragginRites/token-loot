@@ -3,7 +3,7 @@
 import { MODULE_ID } from '../utils/settings.js';
 import { enqueueActorTask, withRetries } from '../domain/queue.js';
 import { awardActor } from '../domain/awardService.js';
-import { findGroupForActor, findAllGroupsForActor } from '../domain/groupResolver.js';
+import { findAllGroupsForActor } from '../domain/groupResolver.js';
 import { markGrantsStart, markGrantsDone } from '../domain/grantTracker.js';
 
 export function setupCreateTokenHook() {
@@ -12,26 +12,34 @@ export function setupCreateTokenHook() {
             if (!game.user.isGM) return;
             const actor = tokenDocument?.actor;
             if (!actor) return;
-
-            // Guard: avoid double-award if any other listener or race triggers
-            try {
-                const awarded = await tokenDocument.getFlag(MODULE_ID, 'awarded');
-                if (awarded) return;
-            } catch { }
+            const isLinked = !!(tokenDocument?.actorLink ?? tokenDocument?._source?.actorLink);
+            const allowLinkedNpcOverride = !!game.settings.get(MODULE_ID, 'allowLinkedNpcOverride');
+            if (isLinked && actor.type === 'npc' && !allowLinkedNpcOverride) return;
 
             // If loot was applied earlier in preCreate (for unlinked), only post the chat here
             try {
                 const preApplied = tokenDocument.getFlag(MODULE_ID, 'preApplied');
                 if (preApplied) {
                     const grantLog = tokenDocument.getFlag(MODULE_ID, 'grantLog') || { currency: {}, items: [] };
-                    const rules = getEffectiveRulesForActor(actor);
-                    // Just find the single matching group name for display if possible, or generic
-                    const group = rules ? findGroupForActor(rules, actor) : { name: 'Unknown Group' };
-                    await postGMChatLog(actor, group, grantLog);
+                    const awardedGroupNames = tokenDocument.getFlag(MODULE_ID, 'awardedGroupNames') || [];
+                    let groupName = awardedGroupNames.join(', ');
+                    if (!groupName) {
+                        const rules = getEffectiveRulesForActor(actor);
+                        const groups = rules ? findAllGroupsForActor(rules, actor) : [];
+                        groupName = groups.length ? groups.map(g => g.name).join(', ') : 'Unknown Group';
+                    }
+                    await postGMChatLog(actor, { name: groupName }, grantLog);
                     try { await tokenDocument.unsetFlag(MODULE_ID, 'preApplied'); } catch { }
+                    try { await tokenDocument.unsetFlag(MODULE_ID, 'awardedGroupNames'); } catch { }
                     Hooks.callAll('token-loot.awarded', tokenDocument);
                     return;
                 }
+            } catch { }
+
+            // Guard: avoid double-award if any other listener or race triggers
+            try {
+                const awarded = await tokenDocument.getFlag(MODULE_ID, 'awarded');
+                if (awarded) return;
             } catch { }
 
             const staggerMs = Number(game.settings.get(MODULE_ID, 'awardStaggerMs') || 0);

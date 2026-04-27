@@ -26,6 +26,13 @@
     align-items: center;
     padding: 8px 12px;
     width: 100%;
+    border-radius: 8px;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+#tl-group-manager .tl-item-row:hover {
+    background: rgba(74, 140, 42, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(74, 140, 42, 0.18);
 }
 
 /* Right-align controls */
@@ -53,12 +60,29 @@
     height: 36px;
     border-radius: 6px;
     object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 #tl-group-manager .tl-item-name {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+    transition: color 0.12s ease, text-decoration-color 0.12s ease;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 2px;
+}
+
+#tl-group-manager .tl-item-img:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 2px rgba(74, 140, 42, 0.35);
+}
+
+#tl-group-manager .tl-item-name:hover {
+    color: #c6f0a3;
+    text-decoration-color: currentColor;
 }
 
 /* Invalid items are now filtered out instead of displayed */

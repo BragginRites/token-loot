@@ -40,9 +40,9 @@
 
 /* ——— Left Sidebar ——— */
 #tl-group-manager .tl-sidebar {
-    width: 220px;
-    min-width: 180px;
-    max-width: 280px;
+    width: 320px;
+    min-width: 280px;
+    max-width: 380px;
     display: flex;
     flex-direction: column;
     background: rgba(10, 14, 20, 0.6);
@@ -96,6 +96,66 @@
     min-height: 0;
 }
 
+#tl-group-manager .tl-sidebar-footer {
+    border-top: 1px solid #2a2f3a;
+    padding: 8px 10px;
+    background: linear-gradient(135deg, #111723 0%, #0f1419 100%);
+}
+
+#tl-group-manager .tl-linked-npc-override {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #a8b0bb;
+    cursor: grab;
+    user-select: none;
+}
+
+#tl-group-manager .tl-linked-npc-override input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#tl-group-manager .tl-linked-npc-checkbox {
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 16px;
+    border: 1px solid #3a4a5a;
+    border-radius: 4px;
+    background: #0a0e14;
+    color: transparent;
+    transition: all 0.15s ease;
+}
+
+#tl-group-manager .tl-linked-npc-checkbox i {
+    font-size: 10px;
+}
+
+#tl-group-manager .tl-linked-npc-override-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+#tl-group-manager .tl-linked-npc-override:hover {
+    color: #e8ecf1;
+}
+
+#tl-group-manager .tl-linked-npc-override:hover .tl-linked-npc-checkbox {
+    border-color: #4a8c2a;
+    box-shadow: 0 0 0 2px rgba(74, 140, 42, 0.12);
+}
+
+#tl-group-manager .tl-linked-npc-override input:checked + .tl-linked-npc-checkbox {
+    border-color: #4a8c2a;
+    background: rgba(74, 140, 42, 0.2);
+    color: #9bd47c;
+}
+
 #tl-group-manager .tl-group-list::-webkit-scrollbar {
     width: 6px;
 }
@@ -115,12 +175,41 @@
 
 /* Sidebar items */
 #tl-group-manager .tl-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
     padding: 10px 14px;
     margin: 2px 6px;
     border-radius: 8px;
-    cursor: pointer;
+    cursor: grab;
     transition: all 0.15s ease;
     border: 1px solid transparent;
+}
+
+#tl-group-manager .tl-sidebar-item.tl-dragging {
+    cursor: grabbing;
+    opacity: 0.45;
+}
+
+#tl-group-manager .tl-sidebar-item.tl-drop-before::before,
+#tl-group-manager .tl-sidebar-item.tl-drop-after::after {
+    content: '';
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--tl-group-color, #4a8c2a);
+    box-shadow: 0 0 8px rgba(74, 140, 42, 0.45);
+}
+
+#tl-group-manager .tl-sidebar-item.tl-drop-before::before {
+    top: -3px;
+}
+
+#tl-group-manager .tl-sidebar-item.tl-drop-after::after {
+    bottom: -3px;
 }
 
 #tl-group-manager .tl-sidebar-item:hover {
@@ -144,6 +233,11 @@
     line-height: 1.3;
 }
 
+#tl-group-manager .tl-sidebar-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
 #tl-group-manager .tl-sidebar-item.active .tl-sidebar-item-name {
     color: var(--tl-group-color, #a8d88a);
 }
@@ -155,6 +249,46 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+#tl-group-manager .tl-sidebar-item-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+#tl-group-manager .tl-sidebar-item:hover .tl-sidebar-item-actions,
+#tl-group-manager .tl-sidebar-item.active .tl-sidebar-item-actions {
+    opacity: 1;
+}
+
+#tl-group-manager .tl-sidebar-action {
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 1px solid #334154;
+    background: #121925;
+    color: #9ca7b5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    padding: 0;
+}
+
+#tl-group-manager .tl-sidebar-action:hover {
+    color: #e8ecf1;
+    border-color: #4a5a6a;
+    background: #1a2332;
+}
+
+#tl-group-manager .tl-sidebar-delete:hover {
+    border-color: #8c2a2a;
+    color: #ff8a8a;
+    background: rgba(140, 42, 42, 0.18);
 }
 
 /* Hidden by search */

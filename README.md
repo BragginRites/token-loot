@@ -2,9 +2,6 @@
 
 A loot distribution system for Foundry VTT that automatically grants randomized loot to tokens when they're created on the canvas.
 
-<img width="1176" height="1282" alt="image" src="https://github.com/user-attachments/assets/c61a692f-f0ab-4d1f-b3cd-f33e8fb98853" />
-
-▶️ [Watch the demo on YouTube](https://www.youtube.com/watch?v=CZYEzDE1zVc)
 
 
 Coffee helps me stay up to 2am to write these modules. Thank you for the lack of sleep in advance!
@@ -38,6 +35,12 @@ Check out my other module(s):
 4. Drag actors into the group, then drag items into distribution blocks.
 5. Configure chances, quantities, and modes as desired.
 6. Place a token that belongs to the group onto the canvas to grant loot.
+
+### Group ordering (priority)
+
+- In the Group Manager sidebar, drag and drop groups to reorder them.
+- Group order is top-to-bottom and persistent across sessions/server restarts.
+- This is a linear priority order (not nested folders/sub-groups).
 
 ## Distribution Modes
 

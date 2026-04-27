@@ -5,7 +5,7 @@ export const MODULE_ID = 'token-loot';
 export function defaultSettings() {
 	return {
 		schema: 2,
-		scopes: { world: { groups: {} }, scenes: {}, folders: {}, actors: {} }
+		scopes: { world: { groups: {}, groupOrder: [] }, scenes: {}, folders: {}, actors: {} }
 	};
 }
 
@@ -21,13 +21,36 @@ export function getWorldRuleSet() {
 	const s = getFullSettings();
 	if (!s.scopes.world) s.scopes.world = { groups: {} };
 	if (!s.scopes.world.groups) s.scopes.world.groups = {};
+	normalizeGroupOrder(s.scopes.world);
 	return s.scopes.world;
 }
 
 export async function saveWorldRuleSet(worldRules) {
 	const s = getFullSettings();
+	normalizeGroupOrder(worldRules);
 	s.scopes.world = worldRules;
 	await setFullSettings(s);
+}
+
+export function normalizeGroupOrder(worldRules) {
+	if (!worldRules) return;
+	const groups = worldRules.groups || {};
+	const groupIds = Object.keys(groups);
+	const seen = new Set();
+	const normalized = [];
+
+	for (const gid of worldRules.groupOrder || []) {
+		if (!groups[gid] || seen.has(gid)) continue;
+		seen.add(gid);
+		normalized.push(gid);
+	}
+
+	for (const gid of groupIds) {
+		if (seen.has(gid)) continue;
+		normalized.push(gid);
+	}
+
+	worldRules.groupOrder = normalized;
 }
 
 // Re-export slugify for backwards compatibility
@@ -105,6 +128,7 @@ export async function runMigrations() {
 				g.distributionBlocks = blocks;
 			}
 			scope.groups = groups;
+			normalizeGroupOrder(scope);
 		}
 		current.scopes = scopes;
 		current.schema = 2;
@@ -141,6 +165,14 @@ export function registerReliabilitySettings() {
 		config: true,
 		name: 'GM Chat Summary',
 		hint: 'Post a GM-only chat summary after loot is granted for each token.',
+		type: Boolean,
+		default: false
+	});
+
+	// Advanced override: allow loot for linked NPC tokens.
+	game.settings.register(MODULE_ID, 'allowLinkedNpcOverride', {
+		scope: 'world',
+		config: false,
 		type: Boolean,
 		default: false
 	});
