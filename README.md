@@ -7,6 +7,8 @@ A loot distribution system for Foundry VTT that automatically grants randomized 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20Coffee-blue?logo=ko-fi)](https://ko-fi.com/bragginrites)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord)](https://discord.gg/bnVCtQuyMr)
 
+<img width="1248" height="1159" alt="image" src="https://github.com/user-attachments/assets/20eface4-952c-4121-9a71-9f8800249fa8" />
+
 ## Support Development & Vote on Features
 
 Maintaining these modules takes time and caffeine. If you enjoy using Token Loot, there are two ways to support the project:
