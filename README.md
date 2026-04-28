@@ -2,16 +2,33 @@
 
 A loot distribution system for Foundry VTT that automatically grants randomized loot to tokens when they're created on the canvas.
 
+[![Foundry Version](https://img.shields.io/badge/Foundry-v13-orange)](https://foundryvtt.com/)
+[![Patreon](https://img.shields.io/badge/Patreon-Support-red?logo=patreon)](https://www.patreon.com/BragginRites)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20Coffee-blue?logo=ko-fi)](https://ko-fi.com/bragginrites)
+[![Discord](https://img.shields.io/badge/Discord-Join%20Server-7289da?logo=discord)](https://discord.gg/bnVCtQuyMr)
 
+## Support Development & Vote on Features
 
-Coffee helps me stay up to 2am to write these modules. Thank you for the lack of sleep in advance!
+Maintaining these modules takes time and caffeine. If you enjoy using Token Loot, there are two ways to support the project:
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/bragginrites)
+### 1. Join the Dev Circle (Patreon)
+
+Join me on [Patreon](https://www.patreon.com/BragginRites) to support maintenance of my Foundry modules and my project TTRPG, **Chantry**.
+- **Vote:** Help decide which modules and features get prioritised next.
+- **Preview:** See early builds of modules and Chantry.
+- **Access:** Get supporting roles in Discord.
+
+### 2. The Tip Jar (Ko-fi)
+
+Not into subscriptions? You can toss a coin in the jar on [Ko-fi](https://ko-fi.com/bragginrites). It keeps the coffee flowing during those 2 AM coding sessions.
 
 ## Other Modules
 
 Check out my other module(s):
-- [BG3 Inspired HUD](https://github.com/BragginRites/bg3-inspired-hotbar)
+- [BG3 Inspired HUD - Core](https://github.com/BragginRites/bg3-hud-core)
+- [BG3 Inspired HUD - D&D5e](https://github.com/BragginRites/bg3-hud-dnd5e)
+- [BG3 Inspired HUD - PF2e](https://github.com/BragginRites/bg3-hud-pf2e)
+- [BG3 Inspired HUD - DC20 RPG](https://github.com/BragginRites/bg3-hud-dc20rpg)
 - [Surge Dice - A Narrative Dice Pool](https://github.com/BragginRites/surge-dice)
 - [Inspect Statblock](https://github.com/BragginRites/inspect-statblock)
 
