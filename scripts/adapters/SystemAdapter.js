@@ -64,4 +64,45 @@ export class SystemAdapter {
             cp: 'CP'
         };
     }
+
+    /**
+     * Get Smart Filter properties supported by this system.
+     * @returns {Array<object>}
+     */
+    getFilterProperties() {
+        return [
+            { key: 'name', label: 'Name', path: 'name', valueType: 'text', uiControl: 'text', textOp: 'contains', uiGroup: 'identity' },
+            { key: 'type', label: 'Actor Type', path: 'type', valueType: 'text', uiControl: 'text', textOp: 'contains', uiGroup: 'identity' },
+            { key: 'custom', label: 'Custom Path', path: '__custom', valueType: 'text', uiControl: 'custom', uiGroup: 'advanced' }
+        ];
+    }
+
+    /**
+     * Resolve enum options for a Smart Filter property.
+     * @param {object} property
+     * @returns {{ value: string, label: string }[]}
+     */
+    getFilterEnumOptions(property) {
+        if (!property?.configPath) return property?.options || [];
+
+        try {
+            const dict = foundry.utils.getProperty(CONFIG, property.configPath);
+            if (!dict || typeof dict !== 'object') return property.options || [];
+
+            return Object.entries(dict).map(([key, val]) => {
+                let label;
+                if (typeof val === 'string') {
+                    label = game.i18n?.localize(val) || val;
+                } else if (val?.label) {
+                    label = game.i18n?.localize(val.label) || val.label;
+                } else {
+                    label = key;
+                }
+                return { value: key, label };
+            }).sort((a, b) => a.label.localeCompare(b.label));
+        } catch (e) {
+            console.warn(`${this.systemId} | Failed to resolve filter options`, property.configPath, e);
+            return property.options || [];
+        }
+    }
 }

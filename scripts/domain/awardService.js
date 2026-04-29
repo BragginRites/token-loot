@@ -4,6 +4,7 @@ import { selectAll, selectPick, selectChance } from './selection.js';
 import { applyCurrency } from './currency.js';
 import { MODULE_ID } from '../utils/settings.js';
 import { randomIntegerInclusive } from '../utils/random.js';
+import { warnDiagnostic } from '../utils/diagnostics.js';
 
 /**
  * Resolve loot items and currency for a group without granting them.
@@ -97,7 +98,10 @@ async function grantItems(actor, rows, grantLog, adapter) {
 
         try {
             const doc = await fromUuid(row.uuid);
-            if (!doc) continue;
+            if (!doc) {
+                warnDiagnostic(`Could not resolve item UUID ${row.uuid}`);
+                continue;
+            }
 
             let data = doc.toObject();
             if (data._id) delete data._id;
@@ -137,19 +141,24 @@ async function grantItems(actor, rows, grantLog, adapter) {
             grantLog.items.push({ name: data.name, qty });
 
         } catch (e) {
-            console.warn(`${MODULE_ID} | Failed to resolve/process ${row.uuid}`, e);
+            warnDiagnostic(`Failed to resolve or process item UUID ${row.uuid}`, e);
         }
     }
 
     if (toCreate.length > 0) {
         const perItemDelay = Number(game.settings.get(MODULE_ID, 'awardItemStaggerMs') || 0);
-        if (perItemDelay > 0) {
-            for (const data of toCreate) {
-                await actor.createEmbeddedDocuments('Item', [data]);
-                await new Promise(r => setTimeout(r, perItemDelay));
+        try {
+            if (perItemDelay > 0) {
+                for (const data of toCreate) {
+                    await actor.createEmbeddedDocuments('Item', [data]);
+                    await new Promise(r => setTimeout(r, perItemDelay));
+                }
+            } else {
+                await actor.createEmbeddedDocuments('Item', toCreate);
             }
-        } else {
-            await actor.createEmbeddedDocuments('Item', toCreate);
+        } catch (e) {
+            warnDiagnostic(`Failed to create ${toCreate.length} loot item(s) on ${actor.name}`, e);
+            throw e;
         }
     }
 }

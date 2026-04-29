@@ -1,6 +1,11 @@
 <div class="tl-card" data-gid="{{group.id}}" data-mode="{{group.mode}}">
 	<div class="tl-card-hdr">
 		<div class="tl-title" data-gid="{{group.id}}">{{group.name}}</div>
+		<div class="tl-card-actions">
+			<button class="tl-btn tl-btn-sm tl-preview-group" type="button" title="{{localize 'TOKEN_LOOT.Manager.PreviewGroupTitle'}}">
+				<i class="fas fa-flask"></i> {{localize "TOKEN_LOOT.Manager.PreviewGroup"}}
+			</button>
+		</div>
 	</div>
 	<div class="tl-card-body">
 		{{!-- Mode badge injected by JS --}}
@@ -30,11 +35,9 @@
 			</div>
 			<div class="tl-section-content">
 				<div class="tl-filter-help">{{localize "TOKEN_LOOT.Card.SmartFiltersHint"}}</div>
-				<div class="tl-filter-empty">{{localize "TOKEN_LOOT.Card.FiltersEmpty"}}</div>
-				<div class="tl-filters" data-gid="{{group.id}}">
-					<!-- filter chips injected here -->
-				</div>
-				<button class="tl-btn tl-btn-sm tl-add-filter" type="button"><i class="fas fa-plus"></i> {{localize "TOKEN_LOOT.Card.AddFilter"}}</button>
+				<div class="tl-filter-warnings tl-hidden"></div>
+				<div class="tl-filter-panel" data-gid="{{group.id}}"></div>
+				<button class="tl-btn tl-btn-sm tl-filter-clear-panel" type="button">{{localize "TOKEN_LOOT.Filter.ClearPanel"}}</button>
 			</div>
 		</div>
 		

@@ -169,6 +169,15 @@ export function registerReliabilitySettings() {
 		default: false
 	});
 
+	game.settings.register(MODULE_ID, 'enableDiagnostics', {
+		scope: 'world',
+		config: true,
+		name: 'Verbose GM Diagnostics',
+		hint: 'Show GM notifications for recoverable Token Loot award issues. Console logging always remains available.',
+		type: Boolean,
+		default: false
+	});
+
 	// Advanced override: allow loot for linked NPC tokens.
 	game.settings.register(MODULE_ID, 'allowLinkedNpcOverride', {
 		scope: 'world',

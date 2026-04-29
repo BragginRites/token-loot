@@ -5,6 +5,7 @@ import { mergeCurrency } from '../domain/currency.js';
 import { findAllGroupsForActor } from '../domain/groupResolver.js';
 import { resolveGroupLoot } from '../domain/awardService.js';
 import { randomIntegerInclusive } from '../utils/random.js';
+import { warnDiagnostic } from '../utils/diagnostics.js';
 
 export function setupPreCreateTokenHook() {
     Hooks.on('preCreateToken', async (tokenDocument, data, options, userId) => {
@@ -23,11 +24,12 @@ export function setupPreCreateTokenHook() {
             const baseActorId = data.actorId || tokenDocument?.actor?.id;
             const baseActor = baseActorId ? game.actors?.get(baseActorId) : null;
             if (!baseActor) return;
+            if (baseActor.type !== 'npc') return;
 
             // Avoid getting rules if we don't have a base actor
             const settings = game.settings.get(MODULE_ID, 'settings');
             const rules = settings?.scopes?.world ?? { groups: {} };
-            const groups = findAllGroupsForActor({ groups: rules.groups }, baseActor);
+            const groups = findAllGroupsForActor(rules, baseActor);
             if (!groups?.length) return;
 
             const grantLog = { currency: {}, items: [] };
@@ -46,7 +48,10 @@ export function setupPreCreateTokenHook() {
                     const qty = randomIntegerInclusive(row.qtyMin ?? 1, row.qtyMax ?? 1);
                     try {
                         const doc = await fromUuid(row.uuid);
-                        if (!doc) continue;
+                        if (!doc) {
+                            warnDiagnostic(`Could not resolve item UUID ${row.uuid}`);
+                            continue;
+                        }
                         const dataObj = doc.toObject();
                         if (dataObj._id) delete dataObj._id;
                         dataObj.system = dataObj.system || {};
@@ -65,7 +70,7 @@ export function setupPreCreateTokenHook() {
                         toCreate.push(dataObj);
                         grantLog.items.push({ name: dataObj.name, qty });
                     } catch (e) {
-                        console.warn(`${MODULE_ID} | Failed to resolve/process ${row.uuid}`, e);
+                        warnDiagnostic(`Failed to resolve or process item UUID ${row.uuid}`, e);
                     }
                 }
             }
@@ -84,7 +89,7 @@ export function setupPreCreateTokenHook() {
             });
 
         } catch (e) {
-            console.warn(`${MODULE_ID} | preCreateToken failed`, e);
+            warnDiagnostic('preCreateToken loot handling failed', e);
         }
     });
 }

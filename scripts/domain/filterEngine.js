@@ -1,26 +1,9 @@
 'use strict';
 
-/**
- * Property definitions for the dnd5e system.
- * Each property has a label, a path (or special key), a valueType, and
- * optionally a configPath that points to a CONFIG dictionary for enum values.
- */
-const DND5E_PROPERTIES = [
-    { key: 'name',          label: 'Name',              path: 'name',                              valueType: 'text' },
-    { key: 'cr',            label: 'CR / Level',        path: 'system.details.cr',                 valueType: 'number' },
-    { key: 'type',          label: 'Creature Type',     path: 'system.details.type.value',         valueType: 'enum',    configPath: 'DND5E.creatureTypes' },
-    { key: 'size',          label: 'Size',              path: 'system.traits.size',                valueType: 'enum',    configPath: 'DND5E.actorSizes' },
-    { key: 'alignment',     label: 'Alignment',         path: 'system.details.alignment',          valueType: 'enum',    configPath: 'DND5E.alignments' },
-    { key: 'str',           label: 'Strength',          path: 'system.abilities.str.value',        valueType: 'number' },
-    { key: 'dex',           label: 'Dexterity',         path: 'system.abilities.dex.value',        valueType: 'number' },
-    { key: 'con',           label: 'Constitution',      path: 'system.abilities.con.value',        valueType: 'number' },
-    { key: 'int',           label: 'Intelligence',      path: 'system.abilities.int.value',        valueType: 'number' },
-    { key: 'wis',           label: 'Wisdom',            path: 'system.abilities.wis.value',        valueType: 'number' },
-    { key: 'cha',           label: 'Charisma',          path: 'system.abilities.cha.value',        valueType: 'number' },
-    { key: 'hp',            label: 'Max HP',            path: 'system.attributes.hp.max',          valueType: 'number' },
-    { key: 'ac',            label: 'Armor Class',       path: 'system.attributes.ac.value',        valueType: 'number' },
-    { key: 'spellcaster',   label: 'Has Spellcasting',  path: '__special_spellcaster',             valueType: 'boolean' },
-    { key: 'custom',        label: 'Custom Path',       path: '__custom',                          valueType: 'text' }
+const GENERIC_PROPERTIES = [
+    { key: 'name',   label: 'Name',        path: 'name',      valueType: 'text' },
+    { key: 'type',   label: 'Actor Type',  path: 'type',      valueType: 'text' },
+    { key: 'custom', label: 'Custom Path', path: '__custom',  valueType: 'text' }
 ];
 
 const OPERATORS = {
@@ -30,13 +13,32 @@ const OPERATORS = {
     enum:    ['=', '!=']
 };
 
+/** Ascending creature size (tiny → gargantuan) for common Foundry keys */
+const ACTOR_SIZE_RANK = new Map([
+    ['tiny', 0], ['sm', 1], ['med', 2], ['lg', 3], ['huge', 4], ['grg', 5], ['grt', 5]
+]);
+
+function _rankActorSizeValue(value) {
+    const k = String(value || '').toLowerCase();
+    if (ACTOR_SIZE_RANK.has(k)) return ACTOR_SIZE_RANK.get(k);
+    return 50;
+}
+
+function _sortActorSizeOptions(options) {
+    return [...options].sort((a, b) => {
+        const ra = _rankActorSizeValue(a.value);
+        const rb = _rankActorSizeValue(b.value);
+        if (ra !== rb) return ra - rb;
+        return String(a.label).localeCompare(String(b.label));
+    });
+}
+
 /**
- * Get the property definitions for the current system.
- * Currently only dnd5e is implemented; others fall back to a minimal set.
+ * Get Smart Filter property definitions from the active system adapter.
  */
-export function getFilterProperties() {
-    // Future: switch on game.system.id for pf2e, sw5e, etc.
-    return DND5E_PROPERTIES;
+export function getFilterProperties(adapter = _activeAdapter()) {
+    const properties = adapter?.getFilterProperties?.();
+    return Array.isArray(properties) && properties.length ? properties : GENERIC_PROPERTIES;
 }
 
 /**
@@ -52,10 +54,11 @@ export function getOperatorsForType(valueType) {
  * @param {object} filter
  * @returns {boolean}
  */
-export function isFilterComplete(filter) {
+export function isFilterComplete(filter, properties = getFilterProperties()) {
     if (!filter?.property || !filter?.operator) return false;
 
-    const prop = getFilterProperties().find(p => p.key === filter.property);
+    const prop = properties.find(p => p.key === filter.property);
+    if (!prop) return false;
     const valueType = prop?.valueType || 'text';
 
     if (filter.property === 'custom' && !String(filter.customPath ?? '').trim()) return false;
@@ -75,40 +78,63 @@ export function isFilterComplete(filter) {
 }
 
 /**
- * Resolve the enum options for a property from the CONFIG object.
- * Returns an array of { value, label } sorted by label.
- * @param {string} configPath - e.g. 'DND5E.creatureTypes'
+ * Resolve enum options for a property from the active system adapter.
+ * Returns an array of { value, label } sorted by label (actor sizes: tiny → gargantuan).
+ * @param {object|string} propertyOrConfigPath
  * @returns {{ value: string, label: string }[]}
  */
-export function getEnumOptions(configPath) {
-    if (!configPath) return [];
-    try {
-        const dict = foundry.utils.getProperty(CONFIG, configPath);
-        if (!dict || typeof dict !== 'object') return [];
+export function getEnumOptions(propertyOrConfigPath) {
+    const property = typeof propertyOrConfigPath === 'string'
+        ? { configPath: propertyOrConfigPath }
+        : propertyOrConfigPath;
+    if (!property) return [];
 
-        return Object.entries(dict).map(([key, val]) => {
-            // CONFIG entries can be: plain string, or object with .label
+    const adapter = _activeAdapter();
+    if (adapter?.getFilterEnumOptions) {
+        const options = adapter.getFilterEnumOptions(property);
+        if (Array.isArray(options)) {
+            return property.key === 'size' ? _sortActorSizeOptions(options) : options;
+        }
+    }
+
+    const configPath = property.configPath;
+    if (!configPath) {
+        const raw = property.options || [];
+        return property.key === 'size' ? _sortActorSizeOptions(raw) : raw;
+    }
+
+    try {
+        const config = typeof CONFIG !== 'undefined' ? CONFIG : {};
+        const dict = _getProperty(config, configPath);
+        if (!dict || typeof dict !== 'object') {
+            const raw = property.options || [];
+            return property.key === 'size' ? _sortActorSizeOptions(raw) : raw;
+        }
+
+        const opts = Object.entries(dict).map(([key, val]) => {
             let label;
             if (typeof val === 'string') {
-                label = game.i18n?.localize(val) || val;
+                label = _localize(val);
             } else if (val?.label) {
-                label = game.i18n?.localize(val.label) || val.label;
+                label = _localize(val.label);
             } else {
                 label = key;
             }
             return { value: key, label };
-        }).sort((a, b) => a.label.localeCompare(b.label));
+        });
+        if (property.key === 'size') return _sortActorSizeOptions(opts);
+        return opts.sort((a, b) => a.label.localeCompare(b.label));
     } catch (e) {
         console.warn('token-loot | Failed to resolve CONFIG path:', configPath, e);
-        return [];
+        return property.options || [];
     }
 }
 
 /**
  * Resolve a property value from an actor, handling special keys.
  */
-function resolveValue(actor, filter) {
-    const prop = getFilterProperties().find(p => p.key === filter.property);
+function resolveValue(actor, filter, properties = getFilterProperties()) {
+    const prop = properties.find(p => p.key === filter.property);
     const path = prop?.path || filter.customPath || filter.property;
 
     // Special: spellcaster check
@@ -125,20 +151,20 @@ function resolveValue(actor, filter) {
             hasSpells = items.some(i => i.type === 'spell');
         }
 
-        const spellAttr = foundry.utils.getProperty(actor, 'system.attributes.spellcasting');
+        const spellAttr = _getProperty(actor, 'system.attributes.spellcasting');
         const hasSpellcastingAttr = typeof spellAttr === 'string' && spellAttr.length > 0;
-        const hasSpellLevel = foundry.utils.getProperty(actor, 'system.details.spellLevel') || 
-                              foundry.utils.getProperty(actor, 'system.attributes.spell.level');
+        const hasSpellLevel = _getProperty(actor, 'system.details.spellLevel') ||
+                              _getProperty(actor, 'system.attributes.spell.level');
 
         return hasSpells || hasSpellcastingAttr || !!hasSpellLevel;
     }
 
     // Special: custom path
     if (path === '__custom') {
-        return foundry.utils.getProperty(actor, filter.customPath || '');
+        return _getProperty(actor, filter.customPath || '');
     }
 
-    return foundry.utils.getProperty(actor, path);
+    return _getProperty(actor, path);
 }
 
 /**
@@ -147,13 +173,13 @@ function resolveValue(actor, filter) {
  * @param {object} filter - { property, operator, value, value2?, customPath? }
  * @returns {boolean}
  */
-export function evaluateFilter(actor, filter) {
-    if (!isFilterComplete(filter)) return false;
+export function evaluateFilter(actor, filter, properties = getFilterProperties()) {
+    if (!isFilterComplete(filter, properties)) return false;
 
-    const raw = resolveValue(actor, filter);
+    const raw = resolveValue(actor, filter, properties);
     const op = filter.operator;
 
-    const prop = getFilterProperties().find(p => p.key === filter.property);
+    const prop = properties.find(p => p.key === filter.property);
     const valueType = prop?.valueType || 'text';
 
     if (valueType === 'boolean') {
@@ -204,18 +230,59 @@ export function evaluateFilter(actor, filter) {
 }
 
 /**
+ * Grouping key for evaluateAllFilters: same key is OR, different keys are AND.
+ * Custom path filters use the path so multiple different paths are AND.
+ */
+export function filterGroupKey(f) {
+    const p = f?.property || '_';
+    if (p === 'custom' && String(f.customPath ?? '').trim()) {
+        return `custom::${String(f.customPath).trim()}`;
+    }
+    return p;
+}
+
+/**
  * Evaluate ALL filters for a group against an actor.
- * All filters must match (AND logic).
+ * Same property key is OR (any matching row); different properties are AND.
  * @param {object} actor
  * @param {object[]} filters
  * @returns {boolean}
  */
-export function evaluateAllFilters(actor, filters) {
+export function evaluateAllFilters(actor, filters, properties = getFilterProperties()) {
     if (!filters || filters.length === 0) return false;
-    return filters.every(f => evaluateFilter(actor, f));
+    const complete = filters.filter(f => isFilterComplete(f, properties));
+    if (complete.length === 0) return false;
+
+    const byProp = new Map();
+    for (const f of complete) {
+        const key = filterGroupKey(f);
+        if (!byProp.has(key)) byProp.set(key, []);
+        byProp.get(key).push(f);
+    }
+
+    for (const [, groupFilters] of byProp) {
+        if (!groupFilters.some(f => evaluateFilter(actor, f, properties))) return false;
+    }
+    return true;
 }
 
 function _isNumeric(value) {
     if (value === null || value === undefined || String(value).trim() === '') return false;
     return !Number.isNaN(Number(value));
+}
+
+function _activeAdapter() {
+    return typeof game !== 'undefined' ? game.tokenLoot?.adapter : null;
+}
+
+function _getProperty(source, path) {
+    if (!source || !path) return undefined;
+    if (typeof foundry !== 'undefined' && foundry.utils?.getProperty) {
+        return foundry.utils.getProperty(source, path);
+    }
+    return String(path).split('.').reduce((obj, part) => obj?.[part], source);
+}
+
+function _localize(value) {
+    return typeof game !== 'undefined' ? game.i18n?.localize(value) || value : value;
 }

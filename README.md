@@ -55,11 +55,23 @@ Check out my other module(s):
 5. Configure chances, quantities, and modes as desired.
 6. Place a token that belongs to the group onto the canvas to grant loot.
 
+## 5-minute setup
+
+1. Create an **Individual Actors** group for one known NPC.
+2. Drag that NPC into the actors section.
+3. Add one distribution block and drop a few items into it.
+4. Leave the block on **Chances** and set a simple `100` chance for one item.
+5. Place an unlinked token for that NPC on a scene and check the actor inventory.
+
+Once that works, add Smart Filters or extra distribution blocks. Smart Filters use the active system adapter, so the available fields change by game system.
+
 ### Group ordering (priority)
 
 - In the Group Manager sidebar, drag and drop groups to reorder them.
 - Group order is top-to-bottom and persistent across sessions/server restarts.
-- This is a linear priority order (not nested folders/sub-groups).
+- When multiple groups match, they are applied in visible order.
+- This is a linear order (not nested folders/sub-groups).
+- Use **Test with Actor** in the manager to preview which groups match and why before placing tokens.
 
 ## Distribution Modes
 
@@ -100,17 +112,44 @@ Each group contains one or more distribution blocks. A block can be configured i
 - Works with any game system. There is no dnd5e requirement.
 - System-specific enhancements (e.g., automatic spell scroll creation, certain auto-equip behaviors) are applied when supported by the system, but are not required.
 
+### System support
+
+| System | Currency | Auto-equip | Smart Filters |
+| --- | --- | --- | --- |
+| D&D 5e (`dnd5e`) | Standard coins | Supported for common equipment types | CR, type, size, alignment, ability scores, HP, AC, spellcasting |
+| Star Wars 5e (`sw5e`) | Galactic credits | Supported for common equipment types | CR/level, type, size, alignment, ability scores, HP, AC, Force/tech casting |
+| Pathfinder 2e (`pf2e`) | Coins via PF2e inventory when available | Worn/held carry type support | Level, creature type, size, HP, AC, spellcasting |
+| Pathfinder 1e (`pf1`) | Standard PF1e coins | Basic equipped flag support | CR, type, size, alignment, ability scores, HP, AC |
+| Starfinder 1e (`sfrpg`) | Credits and UPBs | Basic equipped flag support | CR, type, size, ability scores, HP, EAC, KAC |
+| Other systems | Generic currency object fallback | Generic equipped flag fallback | Name, actor type, and custom path |
+
+### Smart Filters (chips and ranges)
+
+- **Smart Filter** groups use **multi-select** controls where the system exposes enums, **min–max ranges** for numeric fields (leave both min and max empty to skip that stat), **Any / Yes / No** for boolean traits, and **text** fields where configured. **Identity** is ordered: name (contains), creature type, spellcasting (when available), alignment, then size. Ability scores sit in two rows (STR–CON, then INT–CHA).
+- **Advanced** is a collapsible section for **custom paths**: add multiple path + “contains” rows; **remove** clears a row (or the fields when only one row remains). **Different paths** are combined with **AND**; multiple rules on the **same** path still use **OR**.
+- **Same field** (except distinct custom paths) → rules are **OR**. **Different fields** → **AND**.
+- Saves from older builds may include **legacy** operators the panel cannot represent. Those rows **still evaluate**; the manager shows a short warning. **Clear panel filters** removes only what the panel controls, not legacy rows.
+
 ### Currency
 
-Currency distribution is currently not supported across systems other than dnd5e. The UI may expose currency fields; treat them as experimental for now.
+Currency distribution is adapter-driven. If your system is not listed above, Token Loot only updates currency keys that already exist on `actor.system.currency`.
 
 ## Settings
 
-- **Apply Loot in preCreate for Unlinked Tokens**: When enabled, unlinked tokens receive loot during preCreate, which reduces race conditions.
 - **Loot Award Stagger (ms)** and **Per-Item Award Stagger (ms)**: Optional delays to reduce contention during item creation.
+- **GM Chat Summary**: Post a GM-only chat summary after loot is granted.
+- **Linked NPC Override**: Allow linked NPC tokens to receive loot on creation from the manager footer.
+
+## Common pitfalls
+
+- **Linked NPCs do not receive loot by default.** Enable Linked NPC Override if you intentionally want linked NPC tokens to be modified on creation.
+- **Unlinked tokens receive loot during `preCreateToken`.** This reduces race conditions, but it also means only data-safe adapter operations run at that stage.
+- **Smart Filter fields are system-specific.** Use Custom Path when your system stores a value outside the listed fields.
+- **Multiple matching groups can apply.** Group order is still useful for organisation and review, but overlapping rules may all grant loot.
+- **Need to debug matching?** The manager's Test with Actor action explains the current group result. Macro authors can also inspect `game.tokenLoot.api.explainMatches(actor)`.
 
 ## Notes
 
-- On token creation, all matching groups are applied. In preCreate mode (unlinked tokens option), only the first matching group is applied.
+- On token creation, matching groups are applied to the token actor where possible.
 - A GM-only chat summary is posted after loot is granted (when possible).
 - Granted items are flagged with `flags.token-loot.granted` so we can identify them in the future for deletion or other purposes.

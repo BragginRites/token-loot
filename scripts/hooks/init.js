@@ -9,6 +9,7 @@ import { Sf1eAdapter } from '../adapters/Sf1eAdapter.js';
 import { Sw5eAdapter } from '../adapters/Sw5eAdapter.js';
 import { SystemAdapter } from '../adapters/SystemAdapter.js';
 import { loadHandlebarsTemplates } from '../compat.js';
+import { explainAllGroupsForActor } from '../domain/groupResolver.js';
 
 export function setupInitHook() {
     Hooks.once('init', async () => {
@@ -44,6 +45,12 @@ export function setupInitHook() {
 
         game.tokenLoot = game.tokenLoot || {};
         game.tokenLoot.adapter = adapter;
+        game.tokenLoot.api = {
+            explainMatches(actor) {
+                const rules = game.settings.get(MODULE_ID, 'settings')?.scopes?.world ?? { groups: {} };
+                return explainAllGroupsForActor(rules, actor);
+            }
+        };
 
         registerCoreSettings();
         registerReliabilitySettings();

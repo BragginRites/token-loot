@@ -79,6 +79,7 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
                     distributionBlocks: []
                 };
                 this.groupState.addGroup(id, groupData);
+                this._setInitialSectionCollapsedState(id);
                 this.autoSave.save();
 
                 // Add sidebar entry and select it
@@ -451,6 +452,12 @@ export class GroupManagerController extends HandlebarsApplicationMixin(Applicati
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    }
+
+    _setInitialSectionCollapsedState(groupId) {
+        for (const sectionId of ['actors', 'filters', 'currency', 'blocks']) {
+            saveCollapsedState(groupId, sectionId, true);
+        }
     }
 
     async _duplicateGroup(gid) {

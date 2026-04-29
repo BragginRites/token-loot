@@ -42,6 +42,13 @@
     margin-left: auto;
 }
 
+#tl-group-manager .tl-card-actions .tl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
 /* Group Title Input */
 #tl-group-manager .tl-card .tl-title {
     flex: 1;

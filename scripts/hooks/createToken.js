@@ -5,6 +5,7 @@ import { enqueueActorTask, withRetries } from '../domain/queue.js';
 import { awardActor } from '../domain/awardService.js';
 import { findAllGroupsForActor } from '../domain/groupResolver.js';
 import { markGrantsStart, markGrantsDone } from '../domain/grantTracker.js';
+import { warnDiagnostic } from '../utils/diagnostics.js';
 
 export function setupCreateTokenHook() {
     Hooks.on('createToken', async (tokenDocument, options, userId) => {
@@ -12,9 +13,10 @@ export function setupCreateTokenHook() {
             if (!game.user.isGM) return;
             const actor = tokenDocument?.actor;
             if (!actor) return;
+            if (actor.type !== 'npc') return;
             const isLinked = !!(tokenDocument?.actorLink ?? tokenDocument?._source?.actorLink);
             const allowLinkedNpcOverride = !!game.settings.get(MODULE_ID, 'allowLinkedNpcOverride');
-            if (isLinked && actor.type === 'npc' && !allowLinkedNpcOverride) return;
+            if (isLinked && !allowLinkedNpcOverride) return;
 
             // If loot was applied earlier in preCreate (for unlinked), only post the chat here
             try {
@@ -71,7 +73,7 @@ export function setupCreateTokenHook() {
                 markGrantsDone(tokenDocument.id);
             });
         } catch (err) {
-            console.error(`${MODULE_ID} | Error applying loot on token creation`, err);
+            warnDiagnostic('Error applying loot on token creation', err);
         }
     });
 }
@@ -118,7 +120,7 @@ async function postGMChatLog(actor, group, grantLog) {
     try {
         await ChatMessage.create({ content, whisper: ChatMessage.getWhisperRecipients('GM').map(u => u.id) });
     } catch (e) {
-        console.warn(`${MODULE_ID} | Failed to create chat message`, e);
+        warnDiagnostic('Failed to create loot summary chat message', e);
     }
 }
 

@@ -3,6 +3,19 @@
 import { SystemAdapter } from './SystemAdapter.js';
 
 export class Pf2eAdapter extends SystemAdapter {
+    getFilterProperties() {
+        return [
+            { key: 'name', label: 'Name', path: 'name', valueType: 'text', uiControl: 'text', textOp: 'contains', uiGroup: 'identity' },
+            { key: 'level', label: 'Level', path: 'system.details.level.value', valueType: 'number', uiControl: 'range', uiBounds: { min: -1, max: 25, step: 1 }, uiGroup: 'combat' },
+            { key: 'type', label: 'Creature Type', path: 'system.details.creature.value', valueType: 'text', uiControl: 'text', textOp: 'contains', uiGroup: 'identity' },
+            { key: 'size', label: 'Size', path: 'system.traits.size.value', valueType: 'enum', options: this._sizeOptions(), uiControl: 'chips', uiGroup: 'identity' },
+            { key: 'hp', label: 'Max HP', path: 'system.attributes.hp.max', valueType: 'number', uiControl: 'range', uiBounds: { min: 0, max: 999, step: 1 }, uiGroup: 'combat' },
+            { key: 'ac', label: 'Armor Class', path: 'system.attributes.ac.value', valueType: 'number', uiControl: 'range', uiBounds: { min: 0, max: 50, step: 1 }, uiGroup: 'combat' },
+            { key: 'spellcaster', label: 'Has Spellcasting', path: '__special_spellcaster', valueType: 'boolean', uiControl: 'toggle', uiGroup: 'identity' },
+            { key: 'custom', label: 'Custom Path', path: '__custom', valueType: 'text', uiControl: 'custom', uiGroup: 'advanced' }
+        ];
+    }
+
     equipItem(itemData) {
         // PF2e uses system.equipped.carryType = 'worn' | 'held' | 'stowed'
         if (itemData.system?.equipped) {
@@ -45,5 +58,16 @@ export class Pf2eAdapter extends SystemAdapter {
             sp: 'SP',
             cp: 'CP'
         };
+    }
+
+    _sizeOptions() {
+        return [
+            { value: 'tiny', label: 'Tiny' },
+            { value: 'sm', label: 'Small' },
+            { value: 'med', label: 'Medium' },
+            { value: 'lg', label: 'Large' },
+            { value: 'huge', label: 'Huge' },
+            { value: 'grg', label: 'Gargantuan' }
+        ];
     }
 }
