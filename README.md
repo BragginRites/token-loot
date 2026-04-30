@@ -9,20 +9,8 @@ A loot distribution system for Foundry VTT that automatically grants randomized 
 
 <img width="1248" height="1159" alt="image" src="https://github.com/user-attachments/assets/20eface4-952c-4121-9a71-9f8800249fa8" />
 
-## Support Development & Vote on Features
-
-Maintaining these modules takes time and caffeine. If you enjoy using Token Loot, there are two ways to support the project:
-
-### 1. Join the Dev Circle (Patreon)
-
-Join me on [Patreon](https://www.patreon.com/BragginRites) to support maintenance of my Foundry modules and my project TTRPG, **Chantry**.
-- **Vote:** Help decide which modules and features get prioritised next.
-- **Preview:** See early builds of modules and Chantry.
-- **Access:** Get supporting roles in Discord.
-
-### 2. The Tip Jar (Ko-fi)
-
-Not into subscriptions? You can toss a coin in the jar on [Ko-fi](https://ko-fi.com/bragginrites). It keeps the coffee flowing during those 2 AM coding sessions.
+## Support Development
+If it's your kind of thing please consider my [Ko-fi](https://ko-fi.com/bragginrites). It helps to keep me up to 2am coding these modules. Thank you!
 
 ## Other Modules
 
